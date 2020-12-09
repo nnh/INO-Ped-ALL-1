@@ -1,0 +1,10 @@
+/compare
+/input
+/log
+/output
+/save
+/TMF
+*.xlsx
+*.xsl
+*.xml
+*.csv
