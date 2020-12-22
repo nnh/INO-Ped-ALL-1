@@ -200,7 +200,7 @@ data  wk_ds;
   length DSDECOD $100.;
   set  ds;
   DSDECOD=DSTERM;
-  if  DSTERM^="SCREEN FAILURE" then EPOCH="SCREENING";
+  if  DSTERM="SCREEN FAILURE" then EPOCH="SCREENING";
   else if EPOCH="" then EPOCH="FOLLOW-UP";
 run ;
 

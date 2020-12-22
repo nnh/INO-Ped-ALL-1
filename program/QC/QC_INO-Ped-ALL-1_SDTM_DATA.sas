@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_SDTM_DATA.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-07
+Date : 2020-12-22
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -154,10 +154,10 @@ quit;
 data temp_ds;
     set DS (rename=(EPOCH=temp_EPOCH));
     DSDECOD=DSTERM;
-    if DSTERM^="SCREEN FAILURE" then do;
+    if DSTERM="SCREEN FAILURE" then do;
       EPOCH="SCREENING";
     end;
-    else if EPOCH="" then do;
+    else if temp_EPOCH="" then do;
       EPOCH="FOLLOW-UP";
     end;
     else do;
