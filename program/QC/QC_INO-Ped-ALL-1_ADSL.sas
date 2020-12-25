@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-xx
+Date : 2020-12-25
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -34,7 +34,7 @@ options mprint mlogic symbolgen;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_ADaM_LIBNAME.sas";
 * Main processing start;
-%let output_file_name=QC_ADSL;
+%let output_file_name=ADSL;
 %READ_CSV(&inputpath., dm);
 %READ_CSV(&inputpath., ds);
 %READ_CSV(&inputpath., ie);
