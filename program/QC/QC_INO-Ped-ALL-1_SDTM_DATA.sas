@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_SDTM_DATA.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-22
+Date : 2020-1-5
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -311,7 +311,12 @@ proc sql noprint;
              else EGORRESU
            end
            as EGORRESU, 
-           VISITNUM, EGDTC, EGTPTNUM 
+           VISITNUM, EGDTC, 
+           case
+             when VISITNUM="108" and EGTESTCD="QTINTNOS" and EGTPTNUM="10" then 40
+             else input(EGTPTNUM, best12.)
+           end
+           as EGTPTNUM 
     from EG
     order by STUDYID, USUBJID, EGTESTCD, VISITNUM, EGTPTNUM, EGSEQ; 
 quit;

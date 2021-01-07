@@ -214,6 +214,7 @@ run ;
 data  wk_eg;
   set  eg;
   if  EGORRES="" then EGORRESU="";
+  if VISITNUM="108" and EGTESTCD="QTINTNOS" and EGTPTNUM="10" then EGTPTNUM="40";
 run ;
 
 /*** FA domain ***/

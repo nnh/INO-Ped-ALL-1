@@ -21,4 +21,4 @@ libname libtgtqc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\input\ads\QC" ACCESS
       proc compare base=&targetfile. compare=QC_&targetfile. out=Result_&targetfile. listall; run;
     proc printto; run;
 %mend compare_ds;
-%compare_ds(adae);
+%compare_ds(adfa);
