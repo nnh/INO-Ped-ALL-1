@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADEC.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-28
+Date : 2020-1-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -36,9 +36,11 @@ options mprint mlogic symbolgen;
 * Main processing start;
 %let output_file_name=ADEC;
 libname libinput "&outputpath." ACCESS=READONLY;
-%READ_CSV(&outputpath., adsl);
 %READ_CSV(&inputpath., ec);
 %READ_CSV(&inputpath., ds);
+data adsl;
+    set libinput.adsl;
+run;
 data ec_time;
     length STUDYID $200. DOMAIN $200. USUBJID $200. ECSEQ $200. ECSPID $200. ECTRT $200. 
            ECMOOD $200. ECDOSE $200. ECDOSU $200. ECDOSFRM $200. ECROUTE $200. VISITNUM 8. 
@@ -96,13 +98,20 @@ proc sql noprint;
     where a.USUBJID = b.USUBJID and a.VISITNUM = b.VISITNUM;
 quit;
 * Total Dose (mg/m2);
-proc sql noprint;
-    create table temp_ec_TOTDOS as
-    select USUBJID, 'Total Dose (mg/m2)' as PARAM, 'TOTDOS' as PARAMCD, sum(ECDOSE) as AVAL
-    from ec
-    where ECMOOD='PERFORMED'
-    group by USUBJID;
-quit;
+data temp_ec_TOTDOS;
+    set ec;
+    where ECMOOD='PERFORMED';
+    by USUBJID;
+    retain AVAL;
+    if first.USUBJID then do;
+      AVAL=0;
+    end;
+    AVAL=AVAL+ECDOSE;
+    PARAM='Total Dose (mg/m2)';
+    PARAMCD='TOTDOS';
+    if last.USUBJID then output;
+    keep USUBJID PARAM PARAMCD AVAL;
+run;
 * CYCDOS:Total Dose during Cycle x (mg/m2);
 proc sql noprint;
     create table temp_ec_CYCDOS as
@@ -176,7 +185,7 @@ proc sql noprint;
 quit;
 
 data temp_ec_aval;
-    length PARAM $200. PARAMCD $200.;
+    length PARAM $200. PARAMCD $200. USUBJID $200.;
     set temp_ec_dos_2 
         temp_ec_DURTRT
         temp_ec_DURFLU
@@ -199,8 +208,8 @@ proc sql noprint;
     order by USUBJID, PARAMCD, AVISITN;
 quit;
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
-           SITENM $200. AGE 8. AGEGR1$8. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
+           SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200.
            DLTFL $200. PARAM $200. PARAMCD $200. AVAL 8. AVALC $200. ASTDT 8. AENDT 8. ASTDTM 8. 
            AENDTM 8. AVISIT $200. AVISITN 8.;
@@ -229,5 +238,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);

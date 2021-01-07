@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADEG.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-6
+Date : 2021-1-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -54,8 +54,10 @@ options mprint mlogic symbolgen;
 * Main processing start;
 %let output_file_name=ADEG;
 libname libinput "&outputpath." ACCESS=READONLY;
-%READ_CSV(&outputpath., adsl);
 %READ_CSV(&inputpath., eg);
+data adsl;
+    set libinput.adsl;
+run;
 proc sql noprint;
     create table temp_adeg_1 as
     select USUBJID, EGTESTCD as PARAMCD, EGORRES, EGORRESU, EGDTC as ADT, VISITNUM as AVISITN,
@@ -85,13 +87,13 @@ data temp_adeg_qtcb;
     set temp_adeg_qt_rr_1;
     PARAM="QTcB (sec)";
     PARAMCD="QTCB";
-    AVAL=QT_ORRES/(RR_ORRES**1/2);
+    AVAL=QT_ORRES/(RR_ORRES**(1/2));
 run;
 data temp_adeg_qtcf;
     set temp_adeg_qt_rr_1;
     PARAM="QTcF (sec)";
     PARAMCD="QTCF";
-    AVAL=QT_ORRES/(RR_ORRES**1/3);
+    AVAL=QT_ORRES/(RR_ORRES**(1/3));
 run;
 data temp_adeg_qtcb_qtcf;
     set temp_adeg_qtcb
@@ -123,30 +125,24 @@ data temp_adeg_3;
         temp_adeg_qtcb_qtcf_means;
 run;
 * base;
-%GET_BASE_ORRES(temp_adeg_1, temp_dummy, EGORRES);
-proc sort data=temp_base_2 out=temp_adeg_base_1; 
-    by USUBJID PARAMCD descending AVISITN ATPTN EGTPTNUM; 
-run;
+proc sql noprint;
+    create table temp_adeg_base_1 as
+    select * from temp_adeg_means where AVISITN = 100 or AVISITN = 101
+    outer union corr
+    select * from temp_adeg_qtcb_qtcf_means where AVISITN = 100 or AVISITN = 101
+    order by USUBJID, PARAMCD, AVISITN desc, ATPTN;
+quit;
 data temp_adeg_base_2;
     set temp_adeg_base_1;
-    by USUBJID PARAMCD descending AVISITN ATPTN EGTPTNUM;
-    if first.ATPTN then output;
-run;
-proc sort data=temp_adeg_base_2 out=temp_adeg_base_3; 
-    by USUBJID PARAMCD ATPTN descending AVISITN; 
-run;
-data temp_adeg_base_4;
-    set temp_adeg_base_3;
-    by USUBJID PARAMCD ATPTN descending AVISITN;
-    if first.ATPTN then output;
+    by USUBJID PARAMCD;
+    if first.PARAMCD then output;
 run;
 proc sql noprint;
     create table temp_adeg_4 as
-    select a.*, b.BASE
-    from temp_adeg_3 a left join temp_adeg_base_4 b 
+    select a.*, b.AVAL as BASE
+    from temp_adeg_3 a left join temp_adeg_base_2 b 
       on a.USUBJID = b.USUBJID and
-         a.PARAMCD = b.PARAMCD and
-         a.ATPTN = b.ATPTN; 
+         a.PARAMCD = b.PARAMCD; 
 quit;
 data temp_adeg_5;
     set temp_adeg_4;
@@ -171,12 +167,15 @@ quit;
 %SET_ADY(temp_adeg_6, temp_adeg_7);
 %SET_AVISIT(temp_adeg_7, temp_adeg_8);
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
-           SITENM $200. AGE 8. AGEGR1 $8. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
+           SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. 
            DLTFL $200. PARAM $200. PARAMCD $200. AVALC $200. AVAL 8. ADT 8. ADY 8. AVISIT $200. 
            AVISITN 8. ATPT $200. ATPTN 8. BASE 8. CHG 8.;
-    set temp_adeg_8;
+    set temp_adeg_8(rename=(AVAL=temp_AVAL BASE=temp_BASE CHG=temp_CHG));
+    AVAL=round(temp_AVAL, 0.001);
+    BASE=round(temp_BASE, 0.001);
+    CHG=round(temp_CHG, 0.001);
     label STUDYID='Study Identifier' USUBJID='Unique Subject Identifier' 
           SUBJID='Subject Identifier for the Study' TRTSDT='Date of First Exposure to Treatment' 
           TRTEDT='Date of Last Exposure to Treatment' RFICDT='Date of Informed Consent' 
@@ -201,5 +200,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);

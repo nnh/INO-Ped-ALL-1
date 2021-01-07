@@ -36,8 +36,10 @@ options mprint mlogic symbolgen;
 * Main processing start;
 %let output_file_name=ADMH;
 libname libinput "&outputpath." ACCESS=READONLY;
-%READ_CSV(&outputpath., adsl);
 %READ_CSV(&inputpath., mh);
+data adsl;
+    set libinput.adsl;
+run;
 proc sql noprint;
     create table temp_admh_1 as
     select b.STUDYID, b.USUBJID, b.SUBJID, b.TRTSDT, b.TRTEDT, b.RFICDT, b.DTHDT, b.SITEID, 
@@ -48,8 +50,8 @@ proc sql noprint;
     order by mhseq;
 quit;
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8.
-           SITENM $200. AGE 8. AGEGR1$8. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8.
+           SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. 
            DLTFL $200. MHSEQ 8. MHTERM $200. MHDECOD $200. MHCAT $200. MHENRTPT $200. MHENTPT $200.; 
     set temp_admh_1;
@@ -76,5 +78,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);

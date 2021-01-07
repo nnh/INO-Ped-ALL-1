@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADAE.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-25
+Date : 2020-1-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -107,7 +107,7 @@ proc sql noprint;
     order by AESEQ;
 quit;
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
            SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. 
            DLTFL $200. AESEQ 8. AETERM $200. AEBODSYS $200. AEBDSYCD 8. AELLT $200. AELLTCD 8. 
@@ -149,5 +149,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);

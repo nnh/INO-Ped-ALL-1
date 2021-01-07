@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADVS.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-6
+Date : 2021-1-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -36,8 +36,10 @@ options mprint mlogic symbolgen;
 * Main processing start;
 %let output_file_name=ADVS;
 libname libinput "&outputpath." ACCESS=READONLY;
-%READ_CSV(&outputpath., adsl);
 %READ_CSV(&inputpath., vs);
+data adsl;
+    set libinput.adsl;
+run;
 proc sql noprint;
     create table temp_advs_1 as
     select USUBJID, VSTESTCD as PARAMCD, VSORRES, VSORRESU, VSDTC as ADT, VISITNUM as AVISITN,
@@ -95,8 +97,8 @@ quit;
 %SET_ADY(temp_advs_4, temp_advs_5);
 %SET_AVISIT(temp_advs_5, temp_advs_6);
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
-           SITENM $200. AGE 8. AGEGR1 $8. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
+           SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. 
            DLTFL $200. PARAM $200. PARAMCD $200. AVALC $200. AVAL 8. ADT 8. ADY 8. AVISIT $200. 
            AVISITN 8. ATPT $200. ATPTN 8. BASE 8. CHG 8.;
@@ -125,5 +127,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);

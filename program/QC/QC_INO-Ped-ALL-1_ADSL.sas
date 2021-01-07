@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-12-25
+Date : 2020-1-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -48,8 +48,10 @@ options mprint mlogic symbolgen;
 %READ_CSV(&inputpath., pe);
 %READ_CSV(&extpath., facilities);
 data temp_adsl_1;
-    length AGEGR1 $8.;
-    set dm(rename=(RFXSTDTC=TRTSDT RFXENDTC=TRTEDT RFICDTC=RFICDT DTHDTC=DTHDT));         
+    length AGEGR1 $200. SUBJID $200.;
+    set dm(rename=(RFXSTDTC=TRTSDT RFXENDTC=TRTEDT RFICDTC=RFICDT DTHDTC=DTHDT SUBJID=temp_SUBJID));   
+    temp=put(temp_SUBJID, z4.);
+    SUBJID=temp; 
     if AGE < 2 then do;
       AGEGR1="<2";
       AGEGR1N=1;
@@ -351,8 +353,8 @@ data temp_adsl_24_2;
     DLTFL="";
 run;
 data &output_file_name.;
-    length STUDYID $200. USUBJID $200. SUBJID 8. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
-           SITENM $200. AGE 8. AGEGR1 $8. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. ARM $200. 
+    length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
+           SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. ARM $200. 
            TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. DLTFL $200. 
            IETESTCD $200. IETEST $200. BSA 8. HEIGHT 8. WEIGHT 8. BMI 8. PRIMDIAG $200. DISDUR 8. 
            ALLER $200. INTP $200. RELREF $200. RELREFN 8. HSCT $200. RAD $200. LKPS $200. LKPSN 8. 
@@ -396,5 +398,4 @@ run;
 data libout.&output_file_name.;
     set &output_file_name.;
 run;
-%WRITE_CSV(&output_file_name., &output_file_name.);
 %SDTM_FIN(&output_file_name.);
