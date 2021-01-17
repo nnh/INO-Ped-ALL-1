@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-7
+Date : 2020-1-14
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -93,7 +93,7 @@ proc sql noprint;
     create table temp_adsl_2 as
     select a.*, b.DSTERM, b.EPOCH,
     case
-      when DSTERM="COMPLETED" and EPOCH="FOLLOW-UP" then 'Y'
+      when EPOCH="FOLLOW-UP" then 'Y'
       else 'N'
     end as COMPLFL 
     from temp_adsl_1 a left join (select * from ds where DSTERM="COMPLETED" and EPOCH="FOLLOW-UP") b on a.USUBJID = b.USUBJID;

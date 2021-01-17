@@ -96,6 +96,9 @@ data  wk11;
   ASTDT=input(CMSTDTC,yymmdd10.);
   AENDT=input(CMENDTC,yymmdd10.);
   CMSEQ=input(_CMSEQ,best32.);
+  if CMPRESP="Y" and CMOCCUR="N" then delete;
+  if CMDECOD="" then CMDECOD=strip(CMTRT);
+  if CMDECOD="BLINATUMOMAB" then CMDECOD="Blinatumomab";
 run ;
 
 /* adsl */
@@ -148,8 +151,8 @@ proc sql ;
    from wk00;
 quit ;
 
-proc sort data = &file out =libout.&file. nodupkey;
-  by USUBJID CMSEQ;
+proc sort data = &file out =libout.&file. nodupkey dupout=aaa;
+  by USUBJID /*CMSEQ*/  CMCAT ASTDT AENDT CMTRT CMDECOD;
 run;
 
 %ADS_FIN;

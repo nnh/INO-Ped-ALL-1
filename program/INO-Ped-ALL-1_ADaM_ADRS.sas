@@ -102,6 +102,7 @@ data  wk10;
   AVALC=strip(LBORRES);
   ADT=input(LBDTC,yymmdd10.);
   AVISITN=input(VISITNUM,best32.);
+  if AVALC="" then delete;
   format ADT yymmdd10.;
 run ;
 

@@ -140,7 +140,7 @@ run ;
 /* COMPLFL */
 data wk21;
   set  ds;
-  if  DSTERM="COMPLETED" and EPOCH="FOLLOW-UP" ;
+  if  /*DSTERM="COMPLETED" and*/ EPOCH="FOLLOW-UP" ;
   COMPLFL="Y";
   keep USUBJID COMPLFL;
 run ;

@@ -96,6 +96,7 @@ data  wk11;
   ASTDT=input(PRSTDTC,yymmdd10.);
   AENDT=input(PRENDTC,yymmdd10.);
   PRSEQ=input(_PRSEQ,best32.);
+  if PRPRESP="Y" and PROCCUR="N" then delete;
 run ;
 
 /* adsl */
