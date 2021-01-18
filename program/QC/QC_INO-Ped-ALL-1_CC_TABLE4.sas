@@ -75,6 +75,21 @@ options mprint mlogic symbolgen;
         end;
     run;
 %mend;
+%macro SET_MH_VALUES(input_ds, output_ds, mh_ds, output_val);
+    data temp_mh_2;
+        set &mh_ds.;
+        by SUBJID;
+        if first.SUBJID then do;
+          SEQ=-1;
+        end;
+        SEQ+1;
+    run;
+    proc sql noprint;
+        create table &output_ds. as
+        select a.*, b.MHDECOD as &output_val.
+        from &input_ds. a left join temp_mh_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
+    quit;
+%mend SET_MH_VALUES;
 %global subjid_list obs_cnt target_seq_1 target_seq_2;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
@@ -120,7 +135,7 @@ proc sql noprint;
     select SUBJID, MHDECOD 
     from libinput.admh
     where MHENRTPT='ONGOING'
-    order by SUBJID, MHDECOD; 
+    order by SUBJID, MHDECOD;
 
     create table mh_row_count as
     select SUBJID, count(*) as row_count
@@ -177,32 +192,8 @@ proc sql noprint;
     select * from temp_subjid_list_3
     order by SUBJID, target, seq;
 quit;
-data medical_history_2;
-    set medical_history;
-    by SUBJID;
-    if first.SUBJID then do;
-      SEQ=-1;
-    end;
-    SEQ+1;
-run;
-proc sql noprint;
-    create table temp_table4_2 as
-    select a.*, b.MHDECOD as MHDECOD_1
-    from temp_table4_1 a left join medical_history_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
-quit;
-data complications_2;
-    set complications;
-    by SUBJID;
-    if first.SUBJID then do;
-      SEQ=-1;
-    end;
-    SEQ+1;
-run;
-proc sql noprint;
-    create table temp_table4_3 as
-    select a.*, b.MHDECOD as MHDECOD_2
-    from temp_table4_2 a left join complications_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
-quit;
+%SET_MH_VALUES(temp_table4_1, temp_table4_2, medical_history, MHDECOD_1);
+%SET_MH_VALUES(temp_table4_2, temp_table4_3, complications, MHDECOD_2);
 data &output_file_name.;
     set temp_table4_3 (rename=(SUBJID=temp_SUBJID));
     by temp_SUBJID;
@@ -214,8 +205,9 @@ data &output_file_name.;
     end;
 run;
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(&output_file_name., 6, 2, %str(SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR MHDECOD_1 MHDECOD_2 ALLER INTP RELREF FRDUR HSCT 
-         RAD LKPSN CD22 LVEF WBC PBLST BLAST));
+%SET_EXCEL(&output_file_name., 6, 2, %str(SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG 
+                                           DISDUR MHDECOD_1 MHDECOD_2 ALLER INTP RELREF FRDUR 
+                                           HSCT RAD LKPSN CD22 LVEF WBC PBLST BLAST));
 %OUTPUT_EXCEL(&output.);
-*%SDTM_FIN(&output_file_name.);
+%SDTM_FIN(&output_file_name.);
 
