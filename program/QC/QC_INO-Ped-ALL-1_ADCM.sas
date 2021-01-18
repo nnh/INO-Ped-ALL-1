@@ -54,7 +54,7 @@ proc sql noprint;
              when a.CMDECOD='' then CMTRT
              when a.CMDECOD='BLINATUMOMAB' then 'Blinatumomab'
              else CMDECOD
-           end as CMDECOD, 
+           end as CMDECOD, a.CMDOSE, a.CMDOSU, a.CMDOSFRQ, a.CMROUTE,
            a.CMCAT, a.CMSTDTC, a.CMENDTC
     from temp_cm a left join adsl b on a.USUBJID = b.USUBJID
     order by USUBJID, CMCAT, CMSTDTC, CMENDTC, CMTRT, CMDECOD, CMSEQ;
@@ -77,7 +77,8 @@ data &output_file_name.;
     length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. 
            SITEID 8. SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. 
            RACE $200. ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. 
-           SAFFL $200. DLTFL $200. CMSEQ 8. CMTRT $200. CMDECOD $200. CMCAT $200. ASTDT 8. AENDT 8.; 
+           SAFFL $200. DLTFL $200. CMSEQ 8. CMTRT $200. CMDECOD $200. CMDOSE 8. CMDOSU $200.
+           CMDOSFRQ $200. CMROUTE $200. CMCAT $200. ASTDT 8. AENDT 8.; 
     set temp_adcm_2;
     ASTDT=input(CMSTDTC, best12.);
     AENDT=input(CMENDTC, best12.);
@@ -91,12 +92,15 @@ data &output_file_name.;
           FASFL='Full Analysis Set Population Flag' PPSFL='Per Protocol Set Population Flag' 
           SAFFL='Safety Population Flag' DLTFL='DLT Population Flag' CMSEQ='Sequence Number' 
           CMTRT='Reported Name of Drug, Med, or Therapy' CMDECOD='Standardized Medication Name' 
+          CMDOSE='Dose per Administration' CMDOSU='Dose Units' CMDOSFRQ='Dosing Frequency per Interval'
+          CMROUTE='Route of Administration'
           CMCAT='Category for Medication' ASTDT='Analysis Start Date' AENDT='Analysis End Date'; 
     format _ALL_;
     informat _ALL_;
     format TRTSDT YYMMDD10. TRTEDT YYMMDD10. RFICDT YYMMDD10. DTHDT YYMMDD10. ASTDT YYMMDD10. AENDT YYMMDD10.;
     keep STUDYID USUBJID SUBJID TRTSDT TRTEDT RFICDT DTHDT SITEID SITENM AGE AGEGR1 AGEGR1N AGEU 
-         SEX SEXN RACE ARM TRT01P TRT01PN COMPLFL FASFL PPSFL SAFFL DLTFL CMSEQ CMTRT CMDECOD CMCAT ASTDT AENDT; 
+         SEX SEXN RACE ARM TRT01P TRT01PN COMPLFL FASFL PPSFL SAFFL DLTFL CMSEQ CMTRT CMDECOD CMDOSE
+         CMDOSU CMDOSFRQ CMROUTE CMCAT ASTDT AENDT; 
 run;
 data libout.&output_file_name.;
     set &output_file_name.;

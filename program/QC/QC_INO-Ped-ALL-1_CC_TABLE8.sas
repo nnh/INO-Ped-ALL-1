@@ -1,5 +1,5 @@
 **************************************************************************
-Program Name : QC_INO-Ped-ALL-1_CC_TABLE7.sas
+Program Name : QC_INO-Ped-ALL-1_CC_TABLE8.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
 Date : 2021-1-18
@@ -34,20 +34,23 @@ options mprint mlogic symbolgen;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_CC_LIBNAME.sas";
 * Main processing start;
-%let output_file_name=Table7;
+%let output_file_name=Table8;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
 libname libinput "&inputpath." ACCESS=READONLY;
+data aaa;
+set libinput.adcm;
+run;
 proc sql noprint;
-    create table adae as
-    select SUBJID, AETERM, AETOXGR, AESER, ASTDT, AENDT, ADURN, ASTDY, AEACN, AEREL, COVAL, AEOUT
-    from libinput.adae
-    order by SUBJID, ASTDT, AENDT, AETERM;
+    create table adcm as
+    select SUBJID, CMCAT, CMTRT, CMDECOD, CMDOSE, CMDOSU, CMDOSFRQ, CMROUTE, ASTDT, AENDT
+    from libinput.adcm
+    order by SUBJID, CMCAT, ASTDT, AENDT, CMTRT, CMDECOD;
 quit;
 data &output_file_name.;
-    set adae (rename=(SUBJID=temp_SUBJID));
+    set adcm (rename=(SUBJID=temp_SUBJID));
     by temp_SUBJID;
     if first.temp_SUBJID then do;
       DOSELEVEL=&dose_level.;
@@ -57,9 +60,9 @@ data &output_file_name.;
       call MISSING(DOSELEVEL);
       call MISSING(SUBJID);
     end;
-    keep DOSELEVEL SUBJID AETERM AETOXGR AESER ASTDT AENDT ADURN ASTDY AEACN AEREL COVAL AEOUT;
+    keep DOSELEVEL SUBJID CMCAT CMTRT CMDECOD CMDOSE CMDOSU CMDOSFRQ CMROUTE ASTDT AENDT;
 run;
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(&output_file_name., 6, 2, %str(DOSELEVEL SUBJID AETERM AETOXGR AESER ASTDT AENDT ADURN ASTDY AEACN AEREL COVAL AEOUT));
+%SET_EXCEL(&output_file_name., 6, 2, %str(DOSELEVEL SUBJID CMCAT CMTRT CMDECOD CMDOSE CMDOSU CMDOSFRQ CMROUTE ASTDT AENDT));
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
