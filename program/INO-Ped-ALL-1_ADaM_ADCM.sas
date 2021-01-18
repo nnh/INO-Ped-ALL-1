@@ -89,6 +89,10 @@ data  wk11;
     CMTRT
     CMDECOD
     CMCAT
+    CMDOSE
+    CMDOSU
+    CMDOSFRQ
+    CMROUTE
     ASTDT
     AENDT
   ;
@@ -145,6 +149,10 @@ proc sql ;
     CMSEQ  LENGTH=8    LABEL="Sequence Number",
     CMTRT  LENGTH=200    LABEL="Reported Name of Drug, Med, or Therapy",
     CMDECOD  LENGTH=200    LABEL="Standardized Medication Name",
+    CMDOSE  LENGTH=8    LABEL="Dose per Administration",
+    CMDOSU  LENGTH=200    LABEL="Dose Units",
+    CMDOSFREQ  LENGTH=200    LABEL="Dosing Frequency per Interval",
+    CMROUTE  LENGTH=200    LABEL="Route of Administration",
     CMCAT  LENGTH=200    LABEL="Category for Medication",
     ASTDT  LENGTH=8  FORMAT=YYMMDD10.  LABEL="Analysis Start Date",
     AENDT  LENGTH=8  FORMAT=YYMMDD10.  LABEL="Analysis End Date"

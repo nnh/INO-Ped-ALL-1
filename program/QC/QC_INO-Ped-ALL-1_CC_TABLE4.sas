@@ -30,67 +30,15 @@ options mprint mlogic symbolgen;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
-%macro UNION_OUTPUT_SUBJID(input_ds, output_ds);
-    %local i temp_subjid;
-    data temp_&output_ds.; 
-      set &input_ds.; 
-      stop;   
-      keep SUBJID;
-    run;
-    %do i=1 %to &obs_cnt.;
-        %let temp_subjid=%scan(%quote(&subjid_list.), &i., ',');
-        data _NULL_;
-            set &input_ds.;
-            where SUBJID="&temp_subjid.";
-            if row_count=. then do;
-              row_cnt=1;
-            end;
-            else do;
-              row_cnt=row_count;
-            end;
-            call symputx('row_cnt', row_cnt);
-        run;
-        data temp_&i.;
-            set &input_ds.;
-            where SUBJID="&temp_subjid.";
-            do j=1 to &row_cnt.;
-              output;
-            end;
-            keep SUBJID; 
-        run;
-        data temp_&output_ds.;
-            set temp_&output_ds. temp_&i.;
-        run;
-    %end;
-    data &output_ds.;
-        set temp_&output_ds.;
-        by SUBJID;
-        if first.SUBJID then do;
-          target=&target_seq_1.;
-          seq=0;
-        end;
-        else do;
-          target=&target_seq_2.;
-          seq+1;
-        end;
-    run;
-%mend;
 %macro SET_MH_VALUES(input_ds, output_ds, mh_ds, output_val);
-    data temp_mh_2;
-        set &mh_ds.;
-        by SUBJID;
-        if first.SUBJID then do;
-          SEQ=-1;
-        end;
-        SEQ+1;
-    run;
+    %SET_SEQ_VALUES(&mh_ds., temp_mh_2);
     proc sql noprint;
         create table &output_ds. as
         select a.*, b.MHDECOD as &output_val.
         from &input_ds. a left join temp_mh_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
     quit;
 %mend SET_MH_VALUES;
-%global subjid_list obs_cnt target_seq_1 target_seq_2;
+%global target_seq_1 target_seq_2;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_CC_LIBNAME.sas";
@@ -108,22 +56,6 @@ data adsl;
     keep SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR ALLER INTP RELREF FRDUR HSCT 
          RAD LKPSN CD22 LVEF WBC PBLST BLAST;
 run;
-data subjid_list;
-    set libinput.adsl;
-    keep SUBJID;
-run;
-proc sort data=subjid_list out=subjid_list nodupkey; 
-    by SUBJID; 
-run;
-proc sql noprint;
-    select SUBJID 
-    into: subjid_list separated by ','
-    from subjid_list;
-
-    select count(*)
-    into: obs_cnt trimmed
-    from subjid_list;
-quit;
 proc sql noprint;
     create table medical_history as
     select SUBJID, MHDECOD 
@@ -136,26 +68,9 @@ proc sql noprint;
     from libinput.admh
     where MHENRTPT='ONGOING'
     order by SUBJID, MHDECOD;
-
-    create table mh_row_count as
-    select SUBJID, count(*) as row_count
-    from medical_history
-    group by SUBJID
-    outer union corr
-    select SUBJID, count(*) as row_count
-    from complications
-    group by SUBJID; 
-
-    create table mh_max_row_count as
-    select SUBJID, max(row_count) as row_count
-    from mh_row_count
-    group by SUBJID;
-
-    create table temp_subjid_list_1 as
-    select a.SUBJID, b.row_count
-    from subjid_list a left join mh_max_row_count b on a.SUBJID = b.SUBJID;
-
 quit;
+%EDIT_SUBJID_LIST(libinput.adsl, subjid_list);
+%GET_MAX_OBS_CNT(subjid_list, medical_history, complications, temp_subjid_list_1);
 %UNION_OUTPUT_SUBJID(temp_subjid_list_1, temp_subjid_list_2);
 data temp_subjid_list_3;
     length AGE 8. ALLER $200. BLAST 8. BMI 8. BSA 8. CD22 8. DISDUR 8. FRDUR 8. HEIGHT 8. 

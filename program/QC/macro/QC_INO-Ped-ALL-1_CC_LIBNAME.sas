@@ -2,9 +2,106 @@
 Program Name : QC_INO-Ped-ALL-1_CC_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-15
+Date : 2020-1-18
 SAS version : 9.4
 **************************************************************************;
+%macro EDIT_SUBJID_LIST(input_ds, output_ds);
+    %global subjid_list obs_cnt;
+    data &output_ds.;
+        set &input_ds.;
+        keep SUBJID;
+    run;
+
+    proc sort data=&output_ds. out=&output_ds. nodupkey; 
+    by SUBJID; 
+    run;
+
+    proc sql noprint;
+    select SUBJID 
+        into: subjid_list separated by ','
+    from &output_ds.;
+
+    select count(*)
+    into: obs_cnt trimmed
+    from &output_ds.;
+    quit;
+%mend EDIT_SUBJID_LIST;
+%macro GET_MAX_OBS_CNT(subjid_list, input_ds_1, input_ds_2, output_ds);
+    proc sql noprint;    
+        create table row_count as
+        select SUBJID, count(*) as row_count
+        from &input_ds_1.
+        group by SUBJID
+        outer union corr
+        select SUBJID, count(*) as row_count
+        from &input_ds_2.
+        group by SUBJID; 
+
+        create table max_row_count as
+        select SUBJID, max(row_count) as row_count
+        from row_count
+        group by SUBJID;
+
+        create table &output_ds. as
+        select a.SUBJID, b.row_count
+        from &subjid_list. a left join max_row_count b on a.SUBJID = b.SUBJID;
+    quit;
+%mend GET_MAX_OBS_CNT;
+%macro UNION_OUTPUT_SUBJID(input_ds, output_ds);
+    %local i temp_subjid;
+    data temp_&output_ds.; 
+      set &input_ds.; 
+      stop;   
+      keep SUBJID;
+    run;
+    %do i=1 %to &obs_cnt.;
+        %let temp_subjid=%scan(%quote(&subjid_list.), &i., ',');
+        data _NULL_;
+            set &input_ds.;
+            where SUBJID="&temp_subjid.";
+            if row_count=. then do;
+              row_cnt=1;
+            end;
+            else do;
+              row_cnt=row_count;
+            end;
+            call symputx('row_cnt', row_cnt);
+        run;
+        data temp_&i.;
+            set &input_ds.;
+            where SUBJID="&temp_subjid.";
+            do j=1 to &row_cnt.;
+              output;
+            end;
+            keep SUBJID; 
+        run;
+        data temp_&output_ds.;
+            set temp_&output_ds. temp_&i.;
+        run;
+    %end;
+    data &output_ds.;
+        set temp_&output_ds.;
+        by SUBJID;
+        if first.SUBJID then do;
+          target=&target_seq_1.;
+          seq=0;
+        end;
+        else do;
+          target=&target_seq_2.;
+          seq+1;
+        end;
+    run;
+%mend;
+%macro SET_SEQ_VALUES(input_ds, output_ds);
+    data &output_ds.;
+        set &input_ds.;
+        by SUBJID;
+        if first.SUBJID then do;
+          SEQ=-1;
+        end;
+        SEQ+1;
+    run;
+%mend SET_SEQ_VALUES;
 %macro OPEN_EXCEL(target);
     options noxwait noxsync;
     %sysexec "&target.";
