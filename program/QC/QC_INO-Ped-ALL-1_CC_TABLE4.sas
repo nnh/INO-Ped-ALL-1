@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_CC_TABLE4.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-15
+Date : 2021-1-18
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -90,8 +90,8 @@ options mprint mlogic symbolgen;
 libname libinput "&inputpath." ACCESS=READONLY;
 data adsl;
     set libinput.adsl;
-    keep SUBJID SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR ALLER INTP RELREF FRDUR HSCT 
-         RAD LKPS CD22 LVEF WBC PBLST BLAST;
+    keep SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR ALLER INTP RELREF FRDUR HSCT 
+         RAD LKPSN CD22 LVEF WBC PBLST BLAST;
 run;
 data subjid_list;
     set libinput.adsl;
@@ -111,16 +111,16 @@ proc sql noprint;
 quit;
 proc sql noprint;
     create table medical_history as
-    select SUBJID, MHTERM 
+    select SUBJID, MHDECOD 
     from libinput.admh
     where MHENRTPT='BEFORE'
-    order by SUBJID, MHTERM; 
+    order by SUBJID, MHDECOD; 
 
     create table complications as
-    select SUBJID, MHTERM 
+    select SUBJID, MHDECOD 
     from libinput.admh
     where MHENRTPT='ONGOING'
-    order by SUBJID, MHTERM; 
+    order by SUBJID, MHDECOD; 
 
     create table mh_row_count as
     select SUBJID, count(*) as row_count
@@ -144,7 +144,7 @@ quit;
 %UNION_OUTPUT_SUBJID(temp_subjid_list_1, temp_subjid_list_2);
 data temp_subjid_list_3;
     length AGE 8. ALLER $200. BLAST 8. BMI 8. BSA 8. CD22 8. DISDUR 8. FRDUR 8. HEIGHT 8. 
-           HSCT $200. INTP $200. LKPS $200. LVEF 8. PBLST 8. PRIMDIAG $200. RAD $200.
+           HSCT $200. INTP $200. LKPSN 8. LVEF 8. PBLST 8. PRIMDIAG $200. RAD $200.
            RELREF $200. SEX $200. SUBJID $200. WBC 8. WEIGHT 8.;
     set temp_subjid_list_2;
     where target=&target_seq_2.;
@@ -162,7 +162,7 @@ data temp_subjid_list_3;
     call missing(FRDUR);
     call missing(HSCT);
     call missing(RAD);
-    call missing(LKPS);
+    call missing(LKPSN);
     call missing(CD22);
     call missing(LVEF);
     call missing(WBC);
@@ -177,22 +177,45 @@ proc sql noprint;
     select * from temp_subjid_list_3
     order by SUBJID, target, seq;
 quit;
-
+data medical_history_2;
+    set medical_history;
+    by SUBJID;
+    if first.SUBJID then do;
+      SEQ=-1;
+    end;
+    SEQ+1;
+run;
 proc sql noprint;
-    create table medical_history_2 as 
-    select a.SUBJID, a.SEQ, b.MHTERM
-    from temp_subjid_list_2 a left join medical_history b on a.SUBJID = b.SUBJID order by SUBJID, SEQ;
-
-    create table medical_history_3 as
-    select * from medical_history_2 where MHTERM = '';
-
-    create table medical_history_4 as
-    select * 
-    from left join medical_history_2;
+    create table temp_table4_2 as
+    select a.*, b.MHDECOD as MHDECOD_1
+    from temp_table4_1 a left join medical_history_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
 quit;
-/*
+data complications_2;
+    set complications;
+    by SUBJID;
+    if first.SUBJID then do;
+      SEQ=-1;
+    end;
+    SEQ+1;
+run;
+proc sql noprint;
+    create table temp_table4_3 as
+    select a.*, b.MHDECOD as MHDECOD_2
+    from temp_table4_2 a left join complications_2 b on a.SUBJID = b.SUBJID and a.SEQ = b.SEQ;
+quit;
+data &output_file_name.;
+    set temp_table4_3 (rename=(SUBJID=temp_SUBJID));
+    by temp_SUBJID;
+    if first.temp_SUBJID then do;
+      SUBJID=temp_SUBJID;
+    end;
+    else do;
+      SUBJID='';
+    end;
+run;
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(&output_file_name., 6, 2, %str(SUBJID DOSELEVEL SITENM SEX AGE ASTDT ASTDY AVALC));
+%SET_EXCEL(&output_file_name., 6, 2, %str(SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR MHDECOD_1 MHDECOD_2 ALLER INTP RELREF FRDUR HSCT 
+         RAD LKPSN CD22 LVEF WBC PBLST BLAST));
 %OUTPUT_EXCEL(&output.);
-%SDTM_FIN(&output_file_name.);
-*/
+*%SDTM_FIN(&output_file_name.);
+

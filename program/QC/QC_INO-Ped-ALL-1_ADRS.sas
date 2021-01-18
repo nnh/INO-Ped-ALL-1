@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADRS.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-7
+Date : 2021-1-18
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -60,7 +60,7 @@ proc sql noprint;
     select USUBJID, "MRD" as PARAM, "MRD" as PARAMCD, . as AVAL, LBORRES as AVALC, LBDTC as ADT, 
            VISITNUM as AVISITN
     from lb 
-    where LBTESTCD="MRDQV";
+    where LBTESTCD="MRDQV" and LBORRES^='';
 quit;
 *OVRLRESP:Overall Response;
 proc sql noprint;

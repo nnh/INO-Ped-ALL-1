@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADPR.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-7
+Date : 2020-1-18
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -46,7 +46,7 @@ proc sql noprint;
            b.AGE, b.AGEGR1, b.AGEGR1N, b.AGEU, b.SEX, b.SEXN, b.RACE, b.ARM, b.TRT01P, b.TRT01PN, 
            b.COMPLFL, b.FASFL, b.PPSFL, b.SAFFL, b.DLTFL, a.PRSEQ, a.PRTRT, a.PRCAT, a.PRSCAT,
            a.PRSTDTC, a.PRENDTC
-    from pr a left join adsl b on a.USUBJID = b.USUBJID
+    from (select * from pr where not(PRPRESP='Y' and PROCCUR='N')) a left join adsl b on a.USUBJID = b.USUBJID
     order by prseq;
 quit;
 data &output_file_name.;

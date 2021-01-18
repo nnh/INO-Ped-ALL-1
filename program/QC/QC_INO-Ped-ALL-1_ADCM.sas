@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADCM.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-7
+Date : 2020-1-18
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -40,21 +40,45 @@ libname libinput "&outputpath." ACCESS=READONLY;
 data adsl;
     set libinput.adsl;
 run;
+data temp_cm;
+    set cm;
+    if CMPRESP='Y' and CMOCCUR='N' then delete;
+run;
 proc sql noprint;
-    create table temp_adcm_1 as
+    create table temp_adcm_0 as
     select b.STUDYID, b.USUBJID, b.SUBJID, b.TRTSDT, b.TRTEDT, b.RFICDT, b.DTHDT, b.SITEID, 
            b.SITENM, b.AGE, b.AGEGR1, b.AGEGR1N, b.AGEU, b.SEX, b.SEXN, b.RACE, b.ARM, 
            b.TRT01P, b.TRT01PN, b.COMPLFL, b.FASFL, b.PPSFL, b.SAFFL, b.DLTFL, a.CMSEQ, 
-           a.CMTRT, a.CMDECOD, a.CMCAT, a.CMSTDTC, a.CMENDTC
-    from cm a left join adsl b on a.USUBJID = b.USUBJID
-    order by cmseq;
+           a.CMTRT,
+           case 
+             when a.CMDECOD='' then CMTRT
+             when a.CMDECOD='BLINATUMOMAB' then 'Blinatumomab'
+             else CMDECOD
+           end as CMDECOD, 
+           a.CMCAT, a.CMSTDTC, a.CMENDTC
+    from temp_cm a left join adsl b on a.USUBJID = b.USUBJID
+    order by USUBJID, CMCAT, CMSTDTC, CMENDTC, CMTRT, CMDECOD, CMSEQ;
 quit;
+proc sort data=temp_adcm_0 out=temp_adcm_1 nodupkey; 
+    by USUBJID CMCAT CMSTDTC CMENDTC CMTRT CMDECOD; 
+run;
+data temp_adcm_2;
+    length CMDECOD $200.;
+    set temp_adcm_1 (rename=(CMDECOD=temp_CMDECOD));
+    if temp_CMDECOD='BLINATUMOMAB' then do;
+      CMDECOD='Blinatumomab';
+    end;
+    else do;
+      CMDECOD=temp_CMDECOD;
+    end;
+    drop temp_CMDECOD;
+run;
 data &output_file_name.;
     length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. 
            SITEID 8. SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. 
            RACE $200. ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. 
            SAFFL $200. DLTFL $200. CMSEQ 8. CMTRT $200. CMDECOD $200. CMCAT $200. ASTDT 8. AENDT 8.; 
-    set temp_adcm_1;
+    set temp_adcm_2;
     ASTDT=input(CMSTDTC, best12.);
     AENDT=input(CMENDTC, best12.);
     label STUDYID='Study Identifier' USUBJID='Unique Subject Identifier' 
