@@ -96,10 +96,11 @@ data  wk11;
     ASTDT
     AENDT
   ;
-  set  cm(rename=(CMSEQ=_CMSEQ));
+  set  cm(rename=(CMSEQ=_CMSEQ CMDOSE=_CMDOSE));
   ASTDT=input(CMSTDTC,yymmdd10.);
   AENDT=input(CMENDTC,yymmdd10.);
   CMSEQ=input(_CMSEQ,best32.);
+  CMDOSE=input(_CMDOSE,best32.);
   if CMPRESP="Y" and CMOCCUR="N" then delete;
   if CMDECOD="" then CMDECOD=strip(CMTRT);
   if CMDECOD="BLINATUMOMAB" then CMDECOD="Blinatumomab";
@@ -151,7 +152,7 @@ proc sql ;
     CMDECOD  LENGTH=200    LABEL="Standardized Medication Name",
     CMDOSE  LENGTH=8    LABEL="Dose per Administration",
     CMDOSU  LENGTH=200    LABEL="Dose Units",
-    CMDOSFREQ  LENGTH=200    LABEL="Dosing Frequency per Interval",
+    CMDOSFRQ  LENGTH=200    LABEL="Dosing Frequency per Interval",
     CMROUTE  LENGTH=200    LABEL="Route of Administration",
     CMCAT  LENGTH=200    LABEL="Category for Medication",
     ASTDT  LENGTH=8  FORMAT=YYMMDD10.  LABEL="Analysis Start Date",

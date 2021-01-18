@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_CC_TABLE7.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-12
+Date : 2021-1-18
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -35,35 +35,31 @@ options mprint mlogic symbolgen;
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_CC_LIBNAME.sas";
 * Main processing start;
 %let output_file_name=Table7;
-%let templatename=&template_name_head.table1&template_name_foot.;
+%let templatename=&template_name_head.&output_file_name.&template_name_foot.;
+%let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
-%let output=&outputpath.\QC_&templatename.;
+%let output=&outputpath.\&outputname.;
 libname libinput "&inputpath." ACCESS=READONLY;
-data ae;
-    set libinput.adae;
+proc sql noprint;
+    create table adae as
+    select SUBJID, AETERM, AETOXGR, AESER, ASTDT, AENDT, ADURN, ASTDY, AEACN, AEREL, COVAL, AEOUT
+    from libinput.adae
+    order by USUBJID, ASTDT, AENDT, AETERM;
+quit;
+data &output_file_name.;
+    set adae (rename=(SUBJID=temp_SUBJID));
+    by temp_SUBJID;
+    if first.temp_SUBJID then do;
+      DOSELEVEL=&dose_level.;
+      SUBJID=temp_SUBJID;
+    end;
+    else do;
+      call MISSING(DOSELEVEL);
+      call MISSING(SUBJID);
+    end;
+    keep DOSELEVEL SUBJID AETERM AETOXGR AESER ASTDT AENDT ADURN ASTDY AEACN AEREL COVAL AEOUT;
 run;
-data temp_ae;
-    set ae;
-    keep SUBJID AETERM AETOXGR AESER AESLIFE ASTDY AENDY ADURN AEACN AEREL COVAL AEOUT;
-run;
-data ds;
-set 
-run;
-
 %OPEN_EXCEL(&template.);
-        filename test dde  'excel|Table1!R6C2:R15C2' notab;
-        data aaa;
-          set adsl;
-          keep STUDYID USUBJID; 
-        run;
-        data _NULL_;
-            set aaa;
-            file test;
-            put STUDYID USUBJID;
-        run;
-
-*Subject ID Dose Level  Site name Sex Age Discontinuation Date  Reference from First Treatment  Reason
-;
-
+%SET_EXCEL(&output_file_name., 6, 2, %str(DOSELEVEL SUBJID AETERM AETOXGR AESER ASTDT AENDT ADURN ASTDY AEACN AEREL COVAL AEOUT));
 %OUTPUT_EXCEL(&output.);
-*%SDTM_FIN(&output_file_name.);
+%SDTM_FIN(&output_file_name.);
