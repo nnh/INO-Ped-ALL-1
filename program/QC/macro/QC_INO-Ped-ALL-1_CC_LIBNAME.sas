@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_CC_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-18
+Date : 2020-1-19
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -160,7 +160,7 @@ SAS version : 9.4
   DM LOG "FILE '&LOG.\&FILE._&output_file_name._LOG_&_YYMM_._&_TIME_..txt' REPLACE" ;
   DM "OUTPUT ; CLEAR ; LOG ; CLEAR ; " ;
 %MEND ;
-%let inputpath=&projectpath.\input\ads\QC;
+%let inputpath=&projectpath.\input\ads;
 %let templatepath=&projectpath.\output\template;
 %let outputpath=&projectpath.\output\QC;
 %let log=&projectpath.\log\QC\CC;

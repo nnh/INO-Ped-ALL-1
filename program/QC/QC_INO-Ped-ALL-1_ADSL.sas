@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-18
+Date : 2020-1-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -96,7 +96,7 @@ proc sql noprint;
       when EPOCH="FOLLOW-UP" then 'Y'
       else 'N'
     end as COMPLFL 
-    from temp_adsl_1 a left join (select * from ds where EPOCH="FOLLOW-UP") b on a.USUBJID = b.USUBJID;
+    from temp_adsl_1 a left join (select * from ds where (DSTERM="COMPLETED") and (EPOCH="FOLLOW-UP")) b on a.USUBJID = b.USUBJID;
 quit;
 proc sql noprint;
     create table temp_adsl_3 as
@@ -112,7 +112,7 @@ data temp_adsl_6;
 run;
 proc sql noprint;
     create table temp_adsl_7 as 
-    select a.*, b.MHTERM as PRIMDIAG, INT((MHENDTC-MHSTDTC)/365.25) as DISDUR, MHENDTC
+    select a.*, b.MHTERM as PRIMDIAG, INT((MHENDTC-MHSTDTC)/30.4375) as DISDUR, MHENDTC
     from temp_adsl_6 a left join (select * from mh where MHCAT = "PRIMARY DIAGNOSIS") b on a.USUBJID = b.USUBJID;
 quit;
 proc sql noprint;
@@ -171,9 +171,10 @@ proc sql noprint;
     select a.*,
     case
       when QSCAT="LANSKY" then QSORRES
+      when QSCAT="KPS" then QSORRES
       else ""
     end as LKPS
-    from temp_adsl_13 a left join (select * from qs where QSCAT="LANSKY") b on a.USUBJID = b.USUBJID;
+    from temp_adsl_13 a left join (select * from qs where (QSCAT="LANSKY") or (QSCAT="KPS")) b on a.USUBJID = b.USUBJID;
 quit;
 data temp_adsl_15;
     length LKPSGR1 $200.;
@@ -210,6 +211,39 @@ data temp_adsl_15;
         LKPSN=10;
       end;
       when (LKPS="Unresponsive") do;
+        LKPSN=0;
+      end;
+      when (LKPS="Normal. No complaints. No evidence of disease.") do;
+        LKPSN=100;
+      end;
+      when (LKPS="Able to carry on normal activity. Minor signs or symptoms of disease.") do;
+        LKPSN=90;
+      end;
+      when (LKPS="Normal activity with effort. Some signs or symptoms of disease.") do;
+        LKPSN=80;
+      end;
+      when (LKPS="Cares for self. Unable to carry on normal activity or do active work.") do;
+        LKPSN=70;
+      end;
+      when (LKPS="Requires occasional assistance,but is able to care for most of his needs.") do;
+        LKPSN=60;
+      end;
+      when (LKPS="Requires considerable assistance and frequent medical care") do;
+        LKPSN=50;
+      end;
+      when (LKPS="Disabled. Requires special care and assistance.") do;
+        LKPSN=40;
+      end;
+      when (LKPS="Severely disabled. Hospitalization is indicated although death not imminent.") do;
+        LKPSN=30;
+      end;
+      when (LKPS="Hospitalization necessary, very sick active supportive treatment necessary.") do;
+        LKPSN=20;
+      end;
+      when (LKPS="Moribund. Fatal processes progressing rapidly.") do;
+        LKPSN=10;
+      end;
+      when (LKPS="Dead.") do;
         LKPSN=0;
       end;
       otherwise LKPSN=.;
@@ -373,7 +407,7 @@ data &output_file_name.;
           DLTFL='DLT Population Flag' IETESTCD='Inclusion/Exclusion Criterion Short Name' 
           IETEST='Inclusion/Exclusion Criterion' BSA='BSA (m2)' HEIGHT='Height (cm)' 
           WEIGHT='Weigth (kg)' BMI='BMI (kg/m2)' PRIMDIAG='Primary Diagnosis' 
-          DISDUR='Disease Duration (Years)' ALLER='Allergic disease' INTP='Cardiac Function Evaluation'
+          DISDUR='Disease Duration (Months)' ALLER='Allergic disease' INTP='Cardiac Function Evaluation'
           RELREF='Type of Relapse / Refractory' RELREFN='Type of Relapse / Refractory (N)' 
           HSCT='Prior HSCT' RAD='Prior radiation for primary diagnosis' 
           LKPS='Lansky/Karnofsky performance status' LKPSN='Lansky/Karnofsky performance status (N)' 
