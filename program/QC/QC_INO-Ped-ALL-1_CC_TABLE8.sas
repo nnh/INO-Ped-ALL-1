@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_CC_TABLE8.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-18
+Date : 2021-1-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -40,13 +40,11 @@ options mprint mlogic symbolgen;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
 libname libinput "&inputpath." ACCESS=READONLY;
-data aaa;
-set libinput.adcm;
-run;
 proc sql noprint;
     create table adcm as
     select SUBJID, CMCAT, CMTRT, CMDECOD, CMDOSE, CMDOSU, CMDOSFRQ, CMROUTE, ASTDT, AENDT
     from libinput.adcm
+    where (CMCAT = 'CONCOMITANT DRUG') or (CMCAT = 'PRIOR TREATMENT')
     order by SUBJID, CMCAT, ASTDT, AENDT, CMTRT, CMDECOD;
 quit;
 data &output_file_name.;

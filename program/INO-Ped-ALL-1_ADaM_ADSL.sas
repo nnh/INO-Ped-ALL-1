@@ -198,7 +198,7 @@ data  wk51;
   set  mh;
   if MHCAT="PRIMARY DIAGNOSIS" ;
   PRIMDIAG=strip(MHTERM);
-  DISDUR=int((input(MHENDTC,yymmdd10.)-input(MHSTDTC,yymmdd10.))/365.25);
+  DISDUR=int((input(MHENDTC,yymmdd10.)-input(MHSTDTC,yymmdd10.))/30.4375);
   keep USUBJID PRIMDIAG DISDUR;
 run ;
 
@@ -267,7 +267,7 @@ run ;
 data  wk71;
   length LKPS LKPSGR1 $200.;
   set  qs;
-  if  QSCAT="LANSKY";
+  if  QSCAT="LANSKY" or QSCAT="KPS";
   LKPS=QSORRES;
   select(LKPS);
     when("Fully active, normal")  LKPSN=100;
@@ -281,6 +281,19 @@ data  wk71;
     when("Often sleeping; play entirely limited to very passive activities")  LKPSN=20 ;
     when("No play; does not get out of bed")  LKPSN=10 ;
     when("Unresponsive")  LKPSN=0  ;
+
+    when("Normal. No complaints. No evidence of disease.")  LKPSN=100;
+    when("Able to carry on normal activity. Minor signs or symptoms of disease.")  LKPSN=90 ;
+    when("Normal activity with effort. Some signs or symptoms of disease.")  LKPSN=80 ;
+    when("Cares for self. Unable to carry on normal activity or do active work.")  LKPSN=70 ;
+    when("Requires occasional assistance,but is able to care for most of his needs.")  LKPSN=60 ;
+    when("Requires considerable assistance and frequent medical care.")  LKPSN=50 ;
+    when("Disabled. Requires special care and assistance.")  LKPSN=40 ;
+    when("Severely disabled. Hospitalization is indicated although death not imminent.")  LKPSN=30 ;
+    when("Hospitalization necessary, very sick active supportive treatment necessary.")  LKPSN=20 ;
+    when("Moribund. Fatal processes progressing rapidly.")  LKPSN=10 ;
+    when("Dead.")  LKPSN=0  ;
+
     otherwise ;
   end ;
   select;
@@ -473,7 +486,7 @@ proc sql ;
       WEIGHT  LENGTH=8    LABEL='Weigth (kg)',
       BMI  LENGTH=8    LABEL='BMI (kg/m2)',
       PRIMDIAG  LENGTH=200    LABEL='Primary Diagnosis',
-      DISDUR  LENGTH=8    LABEL='Disease Duration (Years)',
+      DISDUR  LENGTH=8    LABEL='Disease Duration (Months)',
       ALLER  LENGTH=200    LABEL='Allergic disease',
       INTP  LENGTH=200    LABEL='Cardiac Function Evaluation',
       RELREF  LENGTH=200    LABEL='Type of Relapse / Refractory',
