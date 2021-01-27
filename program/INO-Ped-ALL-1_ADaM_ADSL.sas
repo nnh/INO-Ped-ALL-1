@@ -445,10 +445,18 @@ run ;
 data  wk00;
   merge  wk90 wk103;
   by USUBJID;
-  FASFL="";
-  PPSFL="";
-  SAFFL="";
-  DLTFL="";
+  if  SUBJID="0005" then do;
+    FASFL="N";
+    PPSFL="N";
+    SAFFL="N";
+    DLTFL="N";
+  end ;
+  else do;
+    FASFL="Y";
+    PPSFL="Y";
+    SAFFL="Y";
+    DLTFL="Y";
+  end;
 run ;
 
 /* output */

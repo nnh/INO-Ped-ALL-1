@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-19
+Date : 2020-1-27
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -381,10 +381,18 @@ proc sql noprint;
 quit;
 data temp_adsl_24_2;
     set temp_adsl_24_1;
-    FASFL="";
-    PPSFL="";
-    SAFFL="";
-    DLTFL="";
+    if USUBJID='INO-Ped-ALL-1-0005' then do;
+      FASFL='N';
+      PPSFL='N';
+      SAFFL='N';
+      DLTFL='N';
+    end;
+    else do;
+      FASFL='Y';
+      PPSFL='Y';
+      SAFFL='Y';
+      DLTFL='Y';
+    end;
 run;
 data &output_file_name.;
     length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
