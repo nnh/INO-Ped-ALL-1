@@ -269,6 +269,7 @@ data  wk71;
   set  qs;
   if  QSCAT="LANSKY" or QSCAT="KPS";
   LKPS=QSORRES;
+  LKPSDT=input(QSDTC,yymmdd10.);
   select(LKPS);
     when("Fully active, normal")  LKPSN=100;
     when("Minor restrictions in physically strenuous activity")  LKPSN=90 ;
@@ -308,7 +309,7 @@ data  wk71;
     when("<=40") LKPSGR1N=3;
     otherwise ;
   end;
-  keep USUBJID LKPS LKPSN LKPSGR1 LKPSGR1N ;
+  keep USUBJID LKPS LKPSN LKPSGR1 LKPSGR1N LKPSDT ;
 run ;
 
 data  wk70;
@@ -450,12 +451,16 @@ data  wk00;
     PPSFL="N";
     SAFFL="N";
     DLTFL="N";
+    PKFL="N";
+    ADAFL="N";
   end ;
   else do;
     FASFL="Y";
     PPSFL="Y";
     SAFFL="Y";
     DLTFL="Y";
+    PKFL="Y";
+    ADAFL="Y";
   end;
 run ;
 
@@ -487,6 +492,8 @@ proc sql ;
       PPSFL  LENGTH=200    LABEL='Per Protocol Set Population Flag',
       SAFFL  LENGTH=200    LABEL='Safety Population Flag',
       DLTFL  LENGTH=200    LABEL='DLT Population Flag',
+      PKFL  LENGTH=200    LABEL='PK Population Flag',
+      ADAFL  LENGTH=200    LABEL='ADA Population Flag',
       IETESTCD  LENGTH=200    LABEL='Inclusion/Exclusion Criterion Short Name',
       IETEST  LENGTH=200    LABEL='Inclusion/Exclusion Criterion',
       BSA  LENGTH=8    LABEL='BSA (m2)',
@@ -502,6 +509,7 @@ proc sql ;
       HSCT  LENGTH=200    LABEL='Prior HSCT',
       RAD  LENGTH=200    LABEL='Prior radiation for primary diagnosis',
       LKPS  LENGTH=200    LABEL='Lansky/Karnofsky performance status',
+      LKPSDT  LENGTH=8  FORMAT=YYMMDD10.  LABEL='Lansky/Karnofsky performance status date',
       LKPSN  LENGTH=8    LABEL='Lansky/Karnofsky performance status (N)',
       LKPSGR1  LENGTH=200    LABEL='Lansky/Karnofsky performance status Group 1',
       LKPSGR1N  LENGTH=8    LABEL='Lansky/Karnofsky performance status Group 1 (N)',

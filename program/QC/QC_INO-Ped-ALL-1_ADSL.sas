@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADSL.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-27
+Date : 2020-1-29
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -173,7 +173,12 @@ proc sql noprint;
       when QSCAT="LANSKY" then QSORRES
       when QSCAT="KPS" then QSORRES
       else ""
-    end as LKPS
+    end as LKPS,
+    case
+      when QSCAT="LANSKY" then QSDTC
+      when QSCAT="KPS" then QSDTC
+      else .
+    end as LKPSDT
     from temp_adsl_13 a left join (select * from qs where (QSCAT="LANSKY") or (QSCAT="KPS")) b on a.USUBJID = b.USUBJID;
 quit;
 data temp_adsl_15;
@@ -386,20 +391,24 @@ data temp_adsl_24_2;
       PPSFL='N';
       SAFFL='N';
       DLTFL='N';
+      PKFL='N';
+      ADAFL='N';
     end;
     else do;
       FASFL='Y';
       PPSFL='Y';
       SAFFL='Y';
       DLTFL='Y';
+      PKFL='Y';
+      ADAFL='Y';
     end;
 run;
 data &output_file_name.;
     length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
            SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. ARM $200. 
-           TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. DLTFL $200. 
+           TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. DLTFL $200. PKFL $200. ADAFL $200.
            IETESTCD $200. IETEST $200. BSA 8. HEIGHT 8. WEIGHT 8. BMI 8. PRIMDIAG $200. DISDUR 8. 
-           ALLER $200. INTP $200. RELREF $200. RELREFN 8. HSCT $200. RAD $200. LKPS $200. LKPSN 8. 
+           ALLER $200. INTP $200. RELREF $200. RELREFN 8. HSCT $200. RAD $200. LKPS $200. LKPSDT 8. LKPSN 8. 
            LKPSGR1 $200. LKPSGR1N 8. CD22 8. CD22GR1 $200. CD22GR1N 8. LVEF 8. WBC 8. PBLST 8. 
            PBLSGR1 $200. PBLSGR1N 8. BLAST 8. BLSGR1 $200. BLSGR1N 8. FRDUR 8. FRDURGR1 $200. FRDURGR1N 8.;
     set temp_adsl_24_2;
@@ -412,13 +421,17 @@ data &output_file_name.;
           TRT01P='Planned Treatment for Period 01' TRT01PN='Planned Treatment for Period 01 (N)' 
           COMPLFL='Completers Population Flag' FASFL='Full Analysis Set Population Flag' 
           PPSFL='Per Protocol Set Population Flag' SAFFL='Safety Population Flag' 
-          DLTFL='DLT Population Flag' IETESTCD='Inclusion/Exclusion Criterion Short Name' 
+          DLTFL='DLT Population Flag' 
+          PKFL='PK Population Flag' ADAFL='ADA Population Flag'
+          IETESTCD='Inclusion/Exclusion Criterion Short Name' 
           IETEST='Inclusion/Exclusion Criterion' BSA='BSA (m2)' HEIGHT='Height (cm)' 
           WEIGHT='Weigth (kg)' BMI='BMI (kg/m2)' PRIMDIAG='Primary Diagnosis' 
           DISDUR='Disease Duration (Months)' ALLER='Allergic disease' INTP='Cardiac Function Evaluation'
           RELREF='Type of Relapse / Refractory' RELREFN='Type of Relapse / Refractory (N)' 
           HSCT='Prior HSCT' RAD='Prior radiation for primary diagnosis' 
-          LKPS='Lansky/Karnofsky performance status' LKPSN='Lansky/Karnofsky performance status (N)' 
+          LKPS='Lansky/Karnofsky performance status' 
+          LKPSDT='Lansky/Karnofsky performance status date'
+          LKPSN='Lansky/Karnofsky performance status (N)' 
           LKPSGR1='Lansky/Karnofsky performance status Group 1' 
           LKPSGR1N='Lansky/Karnofsky performance status Group 1 (N)' CD22='CD22' CD22GR1='CD22 Group 1' 
           CD22GR1N='CD22 Group 1 (N)' LVEF='LVEFÅi%Åj' WBC='WBC(/É L)' PBLST='Peripheral Blast Count (/É L)' 
@@ -429,11 +442,12 @@ data &output_file_name.;
           FRDURGR1N='Duration of first remission (Months) Group 1 (N)';
     format _ALL_;
     informat _ALL_;
-    format TRTSDT YYMMDD10. TRTEDT YYMMDD10. RFICDT YYMMDD10. DTHDT YYMMDD10.;
+    format TRTSDT YYMMDD10. TRTEDT YYMMDD10. RFICDT YYMMDD10. DTHDT YYMMDD10. LKPSDT YYMMDD10.;
     keep STUDYID USUBJID SUBJID TRTSDT TRTEDT RFICDT DTHDT SITEID SITENM AGE
          AGEGR1 AGEGR1N AGEU SEX SEXN RACE ARM TRT01P TRT01PN COMPLFL 
-         FASFL PPSFL SAFFL DLTFL IETESTCD IETEST BSA HEIGHT WEIGHT BMI
-         PRIMDIAG DISDUR ALLER INTP RELREF RELREFN HSCT RAD LKPS LKPSN 
+         FASFL PPSFL SAFFL DLTFL PKFL ADAFL
+         IETESTCD IETEST BSA HEIGHT WEIGHT BMI
+         PRIMDIAG DISDUR ALLER INTP RELREF RELREFN HSCT RAD LKPS LKPSDT LKPSN 
          LKPSGR1 LKPSGR1N CD22 CD22GR1 CD22GR1N LVEF WBC PBLST PBLSGR1 PBLSGR1N 
          BLAST BLSGR1 BLSGR1N FRDUR FRDURGR1 FRDURGR1N; 
 run;
