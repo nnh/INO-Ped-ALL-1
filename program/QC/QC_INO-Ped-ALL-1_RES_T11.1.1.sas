@@ -55,8 +55,22 @@ run;
 proc freq data=adsl noprint;
     tables DLTFL / out=ds_dltfl;
 run;
+%macro EDIT_N_PER(output_var, n, per);
 
-
+%mend EDIT_N_PER;
+%macro SET_VAR(target_ds, output_var, target_var, cond_var, cond);
+    data _NULL_;
+        set &target_ds.;
+        where &cond_var.=&cond.;
+        call symput("&output_var.", &target_var.);
+    run;
+%mend SET_VAR;
+%macro SET_ROUND_VAR(target_ds, output_var, target_var, cond_var, cond);
+    %SET_VAR(&target_ds., temp_set_var, &target_var., &cond_var., &cond.);
+    %put &temp_set_var.;
+    %let &output_var.=%sysfunc(round(%sysevalf(&temp_set_var.), 0.1));
+%mend SET_ROUND_VAR;
+%SET_ROUND_VAR(ds_saffl, SAFFL_Y, PERCENT, SAFFL, 'Y');
 
 %OPEN_EXCEL(&template.);
 %SET_EXCEL(&output_file_name., 6, 2, %str(DOSELEVEL SUBJID PRCAT PRTRT ASTDT AENDT));
