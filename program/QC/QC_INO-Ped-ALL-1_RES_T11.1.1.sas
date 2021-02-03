@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T11.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-28
+Date : 2021-2-3
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -55,24 +55,47 @@ run;
 proc freq data=adsl noprint;
     tables DLTFL / out=ds_dltfl;
 run;
-%macro EDIT_N_PER(output_var, n, per);
-
-%mend EDIT_N_PER;
-%macro SET_VAR(target_ds, output_var, target_var, cond_var, cond);
-    data _NULL_;
-        set &target_ds.;
-        where &cond_var.=&cond.;
-        call symput("&output_var.", &target_var.);
+proc freq data=adsl noprint;
+    tables PKFL / out=ds_pkfl;
+run;
+proc freq data=adsl noprint;
+    tables ADAFL / out=ds_adafl;
+run;
+%macro EDIT_N_PER(input_ds, output_ds, target_var);
+    data temp_ds;
+        set &input_ds.;
+        N_PER=CAT(strip(COUNT),' (',strip(round(PERCENT, 0.1)),')');
     run;
-%mend SET_VAR;
-%macro SET_ROUND_VAR(target_ds, output_var, target_var, cond_var, cond);
-    %SET_VAR(&target_ds., temp_set_var, &target_var., &cond_var., &cond.);
-    %put &temp_set_var.;
-    %let &output_var.=%sysfunc(round(%sysevalf(&temp_set_var.), 0.1));
-%mend SET_ROUND_VAR;
-%SET_ROUND_VAR(ds_saffl, SAFFL_Y, PERCENT, SAFFL, 'Y');
-
+    proc sql noprint;
+        create table &output_ds. as
+        select N_PER from temp_ds order by &target_var. desc;
+    quit;
+%mend EDIT_N_PER;
+data output_1;
+    length N_PER $200.;
+    set adsl nobs=NOBS;
+    N_PER=NOBS;
+    keep N_PER;
+run;
+proc sort data=output_1 out=output_1 nodupkey; 
+    by N_PER; 
+run;
+%EDIT_N_PER(ds_saffl, output_2, SAFFL);
+%EDIT_N_PER(ds_fasfl, output_3, FASFL);
+%EDIT_N_PER(ds_ppsfl, output_4, PPSFL);
+%EDIT_N_PER(ds_dltfl, output_5, DLTFL);
+%EDIT_N_PER(ds_pkfl, output_6, PKFL);
+%EDIT_N_PER(ds_adafl, output_7, ADAFL);
+data output_ds;
+    set output_1
+        output_2
+        output_3
+        output_4
+        output_5
+        output_6
+        output_7;
+run;
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(&output_file_name., 6, 2, %str(DOSELEVEL SUBJID PRCAT PRTRT ASTDT AENDT));
+%SET_EXCEL(output_ds, 7, 3, %str(N_PER), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);

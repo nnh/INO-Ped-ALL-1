@@ -49,6 +49,7 @@
   run ;
 %mend;
 %read(lb);
+%read(dm);
 
 data  adsl;
   set libout.adsl ;
@@ -91,6 +92,7 @@ data  wk10;
     AVALC
     ADT
     AVISITN
+    LBDTC
   ;
   set  lb;
   if  LBTESTCD^="MRDQV" and ^missing(LBORRES);
@@ -152,11 +154,12 @@ run ;
 proc sort data=wk20; by USUBJID; run ;
 
 data  wk30;
-  merge  wk20(in=a) adsl;
+  merge  wk20(in=a) adsl dm(keep=USUBJID BRTHDTC);
   by  USUBJID;
   if a;
   if ADT>=TRTSDT then ADY=ADT-TRTSDT+1;
   if ADT < TRTSDT then ADY=ADT-TRTSDT;
+  AAGE=int(YRDIF(input(BRTHDTC,yymmdd10.),input(LBDTC,yymmdd10.)));
 run ;
 
 ***Base;
@@ -206,6 +209,7 @@ proc sql ;
     PPSFL  LENGTH=200    LABEL="Per Protocol Set Population Flag",
     SAFFL  LENGTH=200    LABEL="Safety Population Flag",
     DLTFL  LENGTH=200    LABEL="DLT Population Flag",
+    AAGE  LENGTH=8    LABEL="AGE at Inspection Date",
     PARAM  LENGTH=200    LABEL="Parameter",
     PARAMCD  LENGTH=200    LABEL="Parameter Code",
     AVALC  LENGTH=200    LABEL="Analysis Value (C)",

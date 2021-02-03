@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-1-28
+Date : 2020-2-3
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -109,7 +109,7 @@ SAS version : 9.4
         rc=sleep(5);
     run;
 %mend OPEN_EXCEL;
-%macro SET_EXCEL(output_file_name, output_start_row, output_start_col, output_var);
+%macro SET_EXCEL(output_file_name, output_start_row, output_start_col, output_var, sheet_name);
     %local colcount rowcount output_end_col output_end_row;
     proc contents data=&output_file_name.
         out=_tmpxx_ noprint;
@@ -124,7 +124,7 @@ SAS version : 9.4
     run;
     %let output_end_col=%eval(&output_start_col.+&colcount);
     %let output_end_row=%eval(&output_start_row.+&rowcount);
-    filename cmdexcel dde "excel|&output_file_name.!R&output_start_row.C&output_start_col.:R&output_end_row.C&output_end_col.";
+    filename cmdexcel dde "excel|&sheet_name.!R&output_start_row.C&output_start_col.:R&output_end_row.C&output_end_col.";
     data _NULL_;
         set &output_file_name.;
         file cmdexcel dlm='09'X notab dsd;
