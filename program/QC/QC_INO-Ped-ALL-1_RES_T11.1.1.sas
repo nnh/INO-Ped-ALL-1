@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T11.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-3
+Date : 2021-2-4
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -61,25 +61,7 @@ run;
 proc freq data=adsl noprint;
     tables ADAFL / out=ds_adafl;
 run;
-%macro EDIT_N_PER(input_ds, output_ds, target_var);
-    data temp_ds;
-        set &input_ds.;
-        N_PER=CAT(strip(COUNT),' (',strip(round(PERCENT, 0.1)),')');
-    run;
-    proc sql noprint;
-        create table &output_ds. as
-        select N_PER from temp_ds order by &target_var. desc;
-    quit;
-%mend EDIT_N_PER;
-data output_1;
-    length N_PER $200.;
-    set adsl nobs=NOBS;
-    N_PER=NOBS;
-    keep N_PER;
-run;
-proc sort data=output_1 out=output_1 nodupkey; 
-    by N_PER; 
-run;
+%OUTPUT_ANALYSIS_SET_N(adsl, output_1, N_PER, 'CHAR');
 %EDIT_N_PER(ds_saffl, output_2, SAFFL);
 %EDIT_N_PER(ds_fasfl, output_3, FASFL);
 %EDIT_N_PER(ds_ppsfl, output_4, PPSFL);

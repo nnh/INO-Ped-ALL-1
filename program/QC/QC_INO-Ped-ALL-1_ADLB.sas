@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_ADLB.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-1-7
+Date : 2021-2-4
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -37,14 +37,20 @@ options mprint mlogic symbolgen;
 %let output_file_name=ADLB;
 libname libinput "&outputpath." ACCESS=READONLY;
 %READ_CSV(&inputpath., lb);
+%READ_CSV(&inputpath., dm);
 data adsl;
     set libinput.adsl;
 run;
 proc sql noprint;
-    create table temp_adlb_1 as
+    create table temp_adlb_1_1 as
     select USUBJID, LBTESTCD as PARAMCD, LBORRES, LBORRESU, LBDTC as ADT, VISITNUM as AVISITN, LBTEST
     from lb
     where LBTESTCD^="MRDQV" and not missing(LBORRES);
+quit;
+proc sql noprint;
+    create table temp_adlb_1 as
+    select a.*, int(YRDIF(b.BRTHDTC, a.ADT)) as AAGE
+    from temp_adlb_1_1 a left join dm b on a.USUBJID = b.USUBJID;
 quit;
 %GET_BASE_ORRES(temp_adlb_1, temp_adlb_2, LBORRES);
 data temp_adlb_3;
@@ -78,7 +84,8 @@ data &output_file_name.;
     length STUDYID $200. USUBJID $200. SUBJID $200. TRTSDT 8. TRTEDT 8. RFICDT 8. DTHDT 8. SITEID 8. 
            SITENM $200. AGE 8. AGEGR1 $200. AGEGR1N 8. AGEU $200. SEX $200. SEXN 8. RACE $200. 
            ARM $200. TRT01P $200. TRT01PN 8. COMPLFL $200. FASFL $200. PPSFL $200. SAFFL $200. 
-           DLTFL $200. PARAM $200. PARAMCD $200. AVALC $200. AVAL 8. ADT 8. ADY 8. AVISIT $200. 
+           DLTFL $200. AAGE 8. 
+           PARAM $200. PARAMCD $200. AVALC $200. AVAL 8. ADT 8. ADY 8. AVISIT $200. 
            AVISITN 8. BASE 8. CHG 8.;
     set temp_adlb_6;
     label STUDYID='Study Identifier' USUBJID='Unique Subject Identifier' 
@@ -89,7 +96,8 @@ data &output_file_name.;
           SEXN='Sex (N)' RACE='Race' ARM='Description of Planned Arm' TRT01P='Planned Treatment for Period 01'
           TRT01PN='Planned Treatment for Period 01 (N)' COMPLFL='Completers Population Flag'
           FASFL='Full Analysis Set Population Flag' PPSFL='Per Protocol Set Population Flag' 
-          SAFFL='Safety Population Flag' DLTFL='DLT Population Flag' PARAM='Parameter' PARAMCD='Parameter Code'
+          SAFFL='Safety Population Flag' DLTFL='DLT Population Flag' AAGE='AGE at Inspection Date'
+          PARAM='Parameter' PARAMCD='Parameter Code'
           AVALC='Analysis Value (C)' AVAL='Analysis Value' ADT='Analysis Date' ADY='Analysis Relative Day' 
           AVISIT='Analysis Visit' AVISITN='Analysis Visit (N)' BASE='Baseline Value'
           CHG='Change from Baseline';
@@ -97,7 +105,7 @@ data &output_file_name.;
     informat _ALL_;
     format TRTSDT YYMMDD10. TRTEDT YYMMDD10. RFICDT YYMMDD10. DTHDT YYMMDD10. ADT YYMMDD10.;
     keep STUDYID USUBJID SUBJID TRTSDT TRTEDT RFICDT DTHDT SITEID SITENM AGE AGEGR1 AGEGR1N AGEU 
-         SEX SEXN RACE ARM TRT01P TRT01PN COMPLFL FASFL PPSFL SAFFL DLTFL PARAM PARAMCD AVALC AVAL 
+         SEX SEXN RACE ARM TRT01P TRT01PN COMPLFL FASFL PPSFL SAFFL DLTFL AAGE PARAM PARAMCD AVALC AVAL 
          ADT ADY AVISIT AVISITN BASE CHG; 
 run;
 data libout.&output_file_name.;

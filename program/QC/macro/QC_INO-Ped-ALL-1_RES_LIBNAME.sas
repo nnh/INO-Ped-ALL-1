@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-3
+Date : 2020-2-4
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -150,6 +150,101 @@ SAS version : 9.4
     run;
     filename cmdexcel clear;
 %mend;
+%macro OUTPUT_ANALYSIS_SET_N(input_ds, output_ds, output_var, var_type);
+    data &output_ds.;
+        if &var_type.='CHAR' then do;
+          length &output_var. $200.;
+        end;
+        set &input_ds nobs=NOBS;
+        &output_var.=NOBS;
+        keep &output_var.;
+    run;
+    proc sort data=&output_ds. out=&output_ds. nodupkey;
+        by &output_var.;
+    run;
+%mend OUTPUT_ANALYSIS_SET_N;
+%macro EDIT_N_PER(input_ds, output_ds, target_var);
+    /* N (PER) , order by 'Y', 'N' */
+    data temp_ds;
+        set &input_ds.;
+        N_PER=CAT(strip(COUNT),' (',strip(round(PERCENT, 0.1)),')');
+    run;
+    proc sql noprint;
+        create table &output_ds. as
+        select N_PER from temp_ds order by &target_var. desc;
+    quit;
+%mend EDIT_N_PER;
+%macro EDIT_N_PER_2(input_ds, output_ds, target_var, sort_order, delimiter);
+    /* N, PER */
+    proc freq data=&input_ds. noprint;
+       tables &target_var. / out=temp_ds;
+    run;
+    data temp_ds_2;
+        set temp_ds;
+        N=COUNT;
+        PER=round(PERCENT, 0.1);
+        keep &target_var. N PER;
+    run;
+    %SET_SORT_ORDER(temp_ds_2, &output_ds., &target_var., &sort_order., &delimiter.);
+%mend EDIT_N_PER_2;
+%macro SET_SORT_ORDER(input_ds, output_ds, target_var, sort_order, delimiter);
+    %let cnt=%sysfunc(countw(&sort_order., &delimiter.));
+    %put &cnt.;
+    data ds_sortorder;
+        do i=1 to &cnt.;
+          val=strip(scan(&sort_order., i, &delimiter.));
+          output;
+        end;
+    run;
+    proc sql noprint;
+        create table &output_ds. as
+        select b.val, a.N, a.PER
+        from &input_ds. a right join ds_sortorder b on a.&target_var. = b.val
+        order by i;
+    quit;
+%mend SET_SORT_ORDER;
+%macro EDIT_MEANS(input_ds, output_ds, target_var);
+    proc means data=&input_ds.  noprint;
+        var &target_var.;
+        output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
+    run;
+    data temp_digit;
+        set &input_ds.;
+        digit_count=length(scan(put(&target_var., best12.), 2, "."));
+        keep &target_var. digit_count; 
+    run;
+    proc sql noprint;
+        select max(digit_count) into :max_digit_count from temp_digit;
+    quit;
+    %if &max_digit_count.>1 %then %do;
+      %let digitcount1=%eval(&max_digit_count.+1);
+      %let digitcount2=%eval(&max_digit_count.+2);
+    %end;
+    %else %do;
+      %let digitcount1=%eval(&max_digit_count.);
+      %let digitcount2=%eval(&max_digit_count.+1);
+    %end;
+    %let digit1=%sysevalf(1/(10**(&digitcount1.)));
+    %let digit2=%sysevalf(1/(10**(&digitcount2.)));
+    %let format1=%sysfunc(catx(., 8, %sysfunc(strip(&digitcount1.))));
+    %let format2=%sysfunc(catx(., 8, %sysfunc(strip(&digitcount2.))));
+    data temp_means_2;
+        set temp_means;
+        mean=put(round(temp_mean, &digit1.), &format1.);
+        sd=put(round(temp_sd, &digit2.), &format2.);
+        median=put(round(temp_median, &digit1.), &format1.);
+        mean_sd=cat(strip(mean), 'Å}', strip(sd));
+        min_max=cat(strip(min), 'Å`', strip(max));
+    run; 
+    proc transpose data=temp_means_2 out=temp_means_3;
+        var n mean_sd median min_max;
+        by _TYPE_;
+    run;
+    data &output_ds.;
+        set temp_means_3;
+        keep _NAME_ col1;
+    run;
+%mend EDIT_MEANS;
 %MACRO SDTM_FIN(output_file_name) ;
 
   DATA _NULL_ ;
