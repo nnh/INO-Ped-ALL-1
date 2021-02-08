@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T11.3.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-5
+Date : 2021-2-8
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -30,15 +30,43 @@ options mprint mlogic symbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
-%macro SET_EXCEL_BY_SEQ(input_ds, target_var);
-    %local row_count;
-    %SET_EXCEL(&input_ds., &output_row., 4, &target_var., &output_file_name.);
-    proc sql noprint;
-        select count(*) into: row_count from &input_ds.;
-    quit;
-    %let seq=%eval(&seq.+1);
-    %let output_row=%eval(&output_row.+&row_count.); 
-%mend SET_EXCEL_BY_SEQ;
+%macro EDIT_T11_3_1_1(ds_names);
+    %local val cnt i;
+    %let cnt=%sysfunc(countc(&ds_names., ','));
+    %put &cnt.;
+    %do i=1 %to %eval(&cnt+1);
+      %let val=%sysfunc(strip(%scan(&ds_names., &i., ',')));
+      %let seq=%eval(&seq.+1);
+      %EDIT_MEANS(&val., output_&seq., AVAL);
+    %end;
+%mend EDIT_T11_3_1_1;
+%macro EDIT_T11_3_1_2(ds_names);
+    %local val cnt i;
+    %let cnt=%sysfunc(countc(&ds_names., ','));
+    %put &cnt.;
+    %do i=1 %to %eval(&cnt+1);
+      %let val=%sysfunc(strip(%scan(&ds_names., &i., ',')));
+      %let seq=%eval(&seq.+1);
+      %EDIT_MEANS(&val., temp_output_&seq., AVAL, class_f=1, class_var=AVISITN);
+    %end;
+%mend EDIT_T11_3_1_2;
+%macro EDIT_CYCDOS_CYCRDI(seq);
+    %local i;
+    data temp_ds;
+        set temp_output_&seq.;
+        where _TYPE_=1;
+    run;
+    %do i=1 %to 4;
+      data temp_ds_&i.;
+          set temp_ds;
+          COL1=COL&i.;
+          keep _NAME_ COL1;
+      run;
+    %end;
+    data output_&seq.;
+        set temp_ds_1-temp_ds_4;
+    run;
+%mend EDIT_CYCDOS_CYCRDI;
 %global seq output_row N;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
@@ -68,36 +96,13 @@ data adec_dos adec_durtrt adec_durflu adec_cycn adec_totdos adec_cycdos adec_rdi
     else if PARAMCD='INT' then output adec_int;
     else if PARAMCD='RES' then output adec_res;
 run;
-data adec_cycdos_1 adec_cycdos_2 adec_cycdos_3 adec_cycdos_4;
-    set adec_cycdos;
-    if AVISITN=200 then output adec_cycdos_1;
-    else if AVISITN=300 then output adec_cycdos_2;
-    else if AVISITN=400 then output adec_cycdos_3;
-    else if AVISITN=500 then output adec_cycdos_4;
-run;
-data adec_cycrdi_1 adec_cycrdi_2 adec_cycrdi_3 adec_cycrdi_4;
-    set adec_cycrdi;
-    if AVISITN=200 then output adec_cycrdi_1;
-    else if AVISITN=300 then output adec_cycrdi_2;
-    else if AVISITN=400 then output adec_cycrdi_3;
-    else if AVISITN=500 then output adec_cycrdi_4;
-run;
 %let seq=0;
-%macro EDIT_T11_3_1(ds_names);
-    %local val cnt;
-    %let cnt=%sysfunc(countc(&ds_names., ','));
-    %put &cnt.;
-    %do i=1 %to %eval(&cnt+1);
-      %let val=%sysfunc(strip(%scan(&ds_names., &i., ',')));
-      %let seq=%eval(&seq.+1);
-      %EDIT_MEANS(&val., output_&seq., AVAL);
-    %end;
-%mend EDIT_T11_3_1;
-%EDIT_T11_3_1(%str(adec_durtrt, adec_durflu, adec_cycn, adec_totdos, 
-                     adec_cycdos_1, adec_cycdos_2, adec_cycdos_3, adec_cycdos_4,
-                     adec_rdi, adec_cycrdi_1, adec_cycrdi_2, adec_cycrdi_3, adec_cycrdi_4));
+%EDIT_T11_3_1_1(%str(adec_durtrt, adec_durflu, adec_cycn, adec_totdos, adec_rdi));
+%EDIT_T11_3_1_2(%str(adec_cycdos, adec_cycrdi));
+%EDIT_CYCDOS_CYCRDI(6);
+%EDIT_CYCDOS_CYCRDI(7);
 data output_ds;
-    set output_1-output_13;
+    set output_1-output_4 output_6 output_5 output_7;
 run;
 %OPEN_EXCEL(&template.);
 %SET_EXCEL(output_ds, 6, 4, %str(COL1), &output_file_name.);

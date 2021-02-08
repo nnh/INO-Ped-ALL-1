@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-5
+Date : 2020-2-8
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -220,12 +220,21 @@ SAS version : 9.4
         order by i;
     quit;
 %mend SET_SORT_ORDER;
-%macro EDIT_MEANS(input_ds, output_ds, target_var);
+%macro EDIT_MEANS(input_ds, output_ds, target_var, class_f=., class_var='');
     %local max_digit_count;
-    proc means data=&input_ds.  noprint;
-        var &target_var.;
-        output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
-    run;
+    %if &class_f.=. %then %do;
+      proc means data=&input_ds.  noprint;
+          var &target_var.;
+          output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
+      run;
+    %end;
+    %else %do;
+      proc means data=&input_ds.  noprint;
+          var &target_var.;
+          class &class_var.;
+          output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
+      run;
+    %end;
     data temp_digit;
         set &input_ds.;
         if int(&target_var.)^=&target_var. then do;
@@ -250,7 +259,12 @@ SAS version : 9.4
         length min_max $200.;
         set temp_means;
         mean=put(round(temp_mean, &digit1.), &format1.);
-        sd=put(round(temp_sd, &digit2.), &format2.);
+        if temp_sd^=. then do;
+          sd=put(round(temp_sd, &digit2.), &format2.);
+        end;
+        else do;
+          sd='-';
+        end;
         median=put(round(temp_median, &digit1.), &format1.);
         mean_sd=cat(strip(mean), 'Å}', strip(sd));
         min_digit_count=length(scan(put(min, best12.), 2, "."));
@@ -270,10 +284,17 @@ SAS version : 9.4
         var n mean_sd median min_max;
         by _TYPE_;
     run;
-    data &output_ds.;
-        set temp_means_3;
-        keep _NAME_ col1;
-    run;
+    %if &class_f=. %then %do;
+      data &output_ds.;
+          set temp_means_3;
+          keep _NAME_ col1;
+      run;
+    %end;
+    %else %do;
+      data &output_ds.;
+          set temp_means_3;
+      run;
+    %end;
 %mend EDIT_MEANS;
 %MACRO SDTM_FIN(output_file_name) ;
 
