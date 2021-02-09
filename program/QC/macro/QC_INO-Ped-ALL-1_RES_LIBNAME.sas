@@ -192,6 +192,26 @@ SAS version : 9.4
     run;
     %SET_SORT_ORDER(temp_ds_2, &output_ds., &target_var., &sort_order., &delimiter.);
 %mend EDIT_N_PER_2;
+%macro EDIT_N_PER_3(input_ds, output_ds, target_var);
+    /* N, PER, 95%CI */
+    proc freq data=&input_ds. noprint;
+       tables &target_var. / binomial(level='1');
+       output out=temp_ds binomial;
+    run;
+    proc sql noprint;
+        select count(*) into: target_n
+        from &input_ds.
+        where &target_var = '1';
+    quit;
+    data &output_ds.;
+        set temp_ds;
+        TARGET_N=&target_n.;
+        PER=round(_BIN_*100, 0.01);
+        CI_L=round(XL_BIN*100, 0.01);
+        CI_U=round(XU_BIN*100, 0.01);
+        keep N TARGET_N PER CI_L CI_U;
+    run;
+%mend EDIT_N_PER_3;
 %macro SET_SORT_ORDER(input_ds, output_ds, target_var, sort_order, delimiter);
     %let cnt=%sysfunc(countw(&sort_order., &delimiter.));
     %put &cnt.;
