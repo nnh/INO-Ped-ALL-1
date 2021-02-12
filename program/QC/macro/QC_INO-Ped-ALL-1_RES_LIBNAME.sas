@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-10
+Date : 2020-2-12
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -192,15 +192,41 @@ SAS version : 9.4
     run;
     %SET_SORT_ORDER(temp_ds_2, &output_ds., &target_var., &sort_order., &delimiter.);
 %mend EDIT_N_PER_2;
-%macro EDIT_N_PER_3(input_ds, output_ds, target_var);
+%macro EDIT_N_PER_3(input_ds, output_ds, target_var, weight_f=.);
     /* N, PER, 95%CI */
     %local format1 digit1;
     %let format1=8.2;
     %let digit1=0.01;
-    proc freq data=&input_ds. noprint;
-       tables &target_var. / binomial(level='1');
-       output out=temp_ds binomial;
-    run;
+    %if &weight_f.=. %then %do;
+      proc freq data=&input_ds. noprint;
+          tables &target_var. / binomial(level='1');
+          output out=temp_ds binomial;
+      run;
+    %end;
+    %else %do;
+      proc freq data=&input_ds. noprint;
+          tables &target_var. /out=temp_freq_1;
+      run;
+      data ds_dummy;
+          &target_var.='0';
+          COUNT=0;
+          output;
+          &target_var.='1';
+          COUNT=0;
+          output;
+      run;
+      data temp_freq_2;
+          merge ds_dummy temp_freq_1;
+          by &target_var;
+          drop PERCENT;
+      run;
+      proc freq data=temp_freq_2 noprint;
+          tables &target_var. / binomial(level='1');
+          exact binomial;
+          weight COUNT / zeroes;
+          output out=temp_ds binomial;
+      run;
+    %end;
     proc sql noprint;
         select count(*) into: target_n
         from &input_ds.
