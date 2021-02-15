@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-12
+Date : 2021-2-15
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -68,29 +68,77 @@ run;
 %let seq=%eval(&seq.+1); 
 %OUTPUT_ANALYSIS_SET_N(adae, output_&seq., N, '');
 %EDIT_T14_3_1(temp_adae_1, 0);
-data adae_sae;
-    set adae;
-    where AESER ='Y';
-run;
+proc sql noprint;
+    create table adae_reaction as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AERELN = 1;
+quit;
+%EDIT_T14_3_1(adae_reaction, &N.);
+proc sql noprint;
+    create table adae_sae as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AESER = 'Y';
+quit;
 %EDIT_T14_3_1(adae_sae, &N.);
-data adae_grade3_4;
-    set adae;
-    where (AETOXGR=3) or (AETOXGR=4);
-run;
+proc sql noprint;
+    create table adae_grade3_4 as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where (AETOXGR = 3) or (AETOXGR = 4);
+quit;
 %EDIT_T14_3_1(adae_grade3_4, &N.);
-data adae_grade3_or_more;
-    set adae;
-    where AETOXGR>=3;
-run;
-有害事象及び副作用のうち中止に至った各事象(器官別大分類、基本語)について、発現
-例数、発現率を示す。減量に至った各事象、延期に至った各事象についても同様の解析を行 う。
-14
-INO-Ped-ALL-1 第1.2版
-有害事象及び副作用の各事象(器官別大分類、基本語)について、程度別(グレード別、グ レード3-4、グレード3-5、合計)の発現例数及び発現率を示す。なお、同一症例で同一事象 が複数回発現し、程度が異なる場合には、最も重い程度で1例として頻度を示す。
-
-
-
+proc sql noprint;
+    create table adae_grade3_5 as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AETOXGR >= 3;
+quit;
+%EDIT_T14_3_1(adae_grade3_5, &N.);
+proc sql noprint;
+    create table adae_grade5 as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AETOXGR = 5;
+quit;
+%EDIT_T14_3_1(adae_grade5, &N.);
+proc sql noprint;
+    create table adae_dose_discontinuation as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AEACN = 'DRUG WITHDRAWN';
+quit;
+%EDIT_T14_3_1(adae_dose_discontinuation, &N.);
+proc sql noprint;
+    create table adae_dose_reduction as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AEACN = 'DOSE REDUCED';
+quit;
+%EDIT_T14_3_1(adae_dose_reduction, &N.);
+proc sql noprint;
+    create table adae_dose_delay as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where AEACN = 'DRUG INTERRUPTED';
+quit;
+%EDIT_T14_3_1(adae_dose_delay, &N.);
+proc sql noprint;
+    create table adae_dose_delay_and_reduction as
+    select distinct SUBJID, &target_flg.
+    from adae
+    where (AEACN = 'DRUG INTERRUPTED') or (AEACN = 'DOSE REDUCED');
+quit;
+%EDIT_T14_3_1(adae_dose_delay_and_reduction, &N.);
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(output_1, 8, 3, %str(N TARGET_N PER CI_L CI_U), &output_file_name.);
+data set_output_1;
+    set output_1 output_2;
+run;
+%SET_EXCEL(set_output_1, 6, 3, %str(N), &output_file_name.);
+data set_output_2;
+    set output_3-output_12;
+run;
+%SET_EXCEL(set_output_2, 8, 3, %str(N PER), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
