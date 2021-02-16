@@ -43,20 +43,11 @@ options mprint mlogic symbolgen noquotelenmax;
           select a.*, b.AESOC as temp_AESOC, b.AEDECOD as temp_AEDECOD
           from adae a left join temp_join b on a.AESOC = b.AESOC;
 
-          create table temp_adae_&i._2 as
+          create table temp_adae_&i._3 as
           select *
           from temp_adae_&i._1
-          where AESOC = temp_AESOC;
+          where (AESOC = temp_AESOC) and (AEDECOD = temp_AEDECOD);
       quit;
-      data temp_adae_&i._3;
-          set temp_adae_&i._2;
-          if temp_AEDECOD='' then do;
-            if temp_AESOC=AESOC then output;
-          end;
-          else do;
-            if (temp_AESOC=AESOC) and (temp_AEDECOD=AEDECOD) then output;
-          end;
-      run;
       data temp1 temp2 temp3 temp4 temp5 temp6 temp7 temp8;
           set temp_adae_&i._3;
           if AETOXGR=1 then output temp1;
@@ -110,24 +101,27 @@ options mprint mlogic symbolgen noquotelenmax;
 %let target_flg=SAFFL;
 libname libinput "&inputpath." ACCESS=READONLY;
 proc sql noprint;
+    create table adae_llt as
+    select SUBJID, AESOC, AEDECOD, &target_flg., max(AETOXGR) as AETOXGR
+    from libinput.adae
+    group by SUBJID, AESOC, AEDECOD, &target_flg.;
+
+    create table adae_soc as
+    select SUBJID, AESOC, '' as AEDECOD, &target_flg., max(AETOXGR) as AETOXGR
+    from libinput.adae
+    group by SUBJID, AESOC, &target_flg.;
+
     create table adae as
-    select SUBJID, AESOC, AEDECOD, &target_flg., AETOXGR
-    from libinput.adae;
-
-    create table adae_soc_list as 
-    select distinct AESOC, '' as AEDECOD
-    from adae;
-
-    create table adae_llt_list as
-    select distinct AESOC, AEDECOD
-    from adae;
-
-    create table temp_adae_soc_llt as
     select *
-    from adae_soc_list
+    from adae_soc
     outer union corr
     select *
-    from adae_llt_list
+    from adae_llt
+    order by AESOC, AEDECOD;
+
+    create table temp_adae_soc_llt as
+    select distinct AESOC, AEDECOD
+    from adae
     order by AESOC, AEDECOD;
 
     create table adae_soc_llt as
@@ -174,4 +168,3 @@ run;
 %SET_EXCEL(set_output_2, 9, 3, %str(N_PER N_PER_2 N_PER_3 N_PER_4 N_PER_5 N_PER_6 N_PER_7 N_PER_8), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
-
