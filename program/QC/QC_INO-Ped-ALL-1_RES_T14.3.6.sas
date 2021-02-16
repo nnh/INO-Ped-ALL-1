@@ -59,6 +59,9 @@ options mprint mlogic symbolgen noquotelenmax;
           if AETOXGR>=3 then output temp7;
           output temp8;
       run;
+      proc sort data=temp8 out=temp8 nodupkey; 
+        by SUBJID; 
+      run;
       %do j=1 %to 8;
         %EDIT_N_PER_2(temp&j., temp_output_&j._1, &target_flg., %str('Y, N'), ',', &N.);
         data temp_output_&j._2;
@@ -107,9 +110,8 @@ proc sql noprint;
     group by SUBJID, AESOC, AEDECOD, &target_flg.;
 
     create table adae_soc as
-    select SUBJID, AESOC, '' as AEDECOD, &target_flg., max(AETOXGR) as AETOXGR
-    from libinput.adae
-    group by SUBJID, AESOC, &target_flg.;
+    select distinct SUBJID, AESOC, '' as AEDECOD, &target_flg., AETOXGR
+    from adae_llt;
 
     create table adae as
     select *
