@@ -1,5 +1,5 @@
 **************************************************************************
-Program Name : QC_INO-Ped-ALL-1_RES_T14.3.6.sas
+Program Name : QC_INO-Ped-ALL-1_RES_T14.3.11.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
 Date : 2021-2-16
@@ -34,7 +34,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
-%let output_file_name=T14.3.6;
+%let output_file_name=T14.3.11;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
@@ -45,7 +45,7 @@ proc sql noprint;
     create table adae_llt as
     select SUBJID, AESOC, AEDECOD, &target_flg., max(AETOXGR) as AETOXGR
     from libinput.adae
-    where &target_flg.='Y'
+    where (&target_flg.='Y') and (AERELN = 1)
     group by SUBJID, AESOC, AEDECOD, &target_flg.;
 quit;
 %EDIT_T14_3_x_MAIN(adae_llt);
