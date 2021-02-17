@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-16
+Date : 2020-2-17
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -416,6 +416,26 @@ SAS version : 9.4
       run;
     %end;
 %mend EDIT_T14_3_x;
+%macro EDIT_T14_3_x_OBS_EMPTY();
+    %local cnt;
+    data _NULL_;
+        call symput('cnt', NOBS);
+        if 0 then do;
+          set set_output_2 nobs=NOBS;
+        end;
+        stop;
+    run;
+    %if &cnt.=0 %then %do;
+        data set_output_2;
+            N_PER_8='-';
+            output;
+        run;
+        proc sql noprint;
+            insert into set_output_3
+            set output='No Events';
+        quit;
+    %end;
+%mend EDIT_T14_3_x_OBS_EMPTY;
 %macro EDIT_T14_3_x_MAIN(input_ds);
     %global row_cnt N;
     proc sql noprint;
@@ -446,16 +466,25 @@ SAS version : 9.4
 
     proc sql noprint;
         create table subjid_list as
-        select distinct SUBJID from adae;
+        select distinct SUBJID 
+        from libinput.adsl
+        where &target_flg. = 'Y';
     quit;
     %OUTPUT_ANALYSIS_SET_N(subjid_list, set_output_1, N, '');
     proc sql noprint;
         select N into: N from set_output_1;
     quit;
     %EDIT_T14_3_x;
-    data set_output_2;
-        set output_1-output_&row_cnt.;
-    run;
+    %if &row_cnt.>1 %then %do;
+      data set_output_2;
+          set output_1-output_&row_cnt.;
+      run;
+    %end;
+    %else %do;
+      data set_output_2;
+          set output_1;
+      run;
+    %end;
     data temp_term_of_ae_1;
         length output $200;
         output='Safety Analysis Set';
@@ -475,6 +504,7 @@ SAS version : 9.4
         set temp_term_of_ae_1
             temp_term_of_ae_2;
     run;
+    %EDIT_T14_3_x_OBS_EMPTY;
 %mend EDIT_T14_3_x_MAIN;
 %MACRO SDTM_FIN(output_file_name) ;
 
