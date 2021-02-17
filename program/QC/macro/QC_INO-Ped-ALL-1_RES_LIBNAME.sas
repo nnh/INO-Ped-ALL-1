@@ -462,18 +462,8 @@ SAS version : 9.4
 
         select count(*) into: row_cnt trimmed
         from adae_soc_llt;
-        quit;
-
-    proc sql noprint;
-        create table subjid_list as
-        select distinct SUBJID 
-        from libinput.adsl
-        where &target_flg. = 'Y';
     quit;
-    %OUTPUT_ANALYSIS_SET_N(subjid_list, set_output_1, N, '');
-    proc sql noprint;
-        select N into: N from set_output_1;
-    quit;
+    %SUBJID_N(set_output_1, N, N);
     %EDIT_T14_3_x;
     %if &row_cnt.>1 %then %do;
       data set_output_2;
@@ -506,6 +496,18 @@ SAS version : 9.4
     run;
     %EDIT_T14_3_x_OBS_EMPTY;
 %mend EDIT_T14_3_x_MAIN;
+%macro SUBJID_N(output_ds, output_ds_var, output_var);
+    proc sql noprint;
+        create table subjid_list as
+        select distinct SUBJID 
+        from libinput.adsl
+        where &target_flg. = 'Y';
+    quit;
+    %OUTPUT_ANALYSIS_SET_N(subjid_list, &output_ds., &output_ds_var., '');
+    proc sql noprint;
+        select &output_ds_var. into: &output_var. from &output_ds.;
+    quit;
+%mend SUBJID_N;
 %MACRO SDTM_FIN(output_file_name) ;
 
   DATA _NULL_ ;
