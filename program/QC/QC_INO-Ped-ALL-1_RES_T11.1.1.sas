@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T11.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-4
+Date : 2021-2-22
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -39,45 +39,33 @@ options mprint mlogic symbolgen;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
+%let output_start_row=7;
 libname libinput "&inputpath." ACCESS=READONLY;
 data adsl;
     set libinput.adsl;
 run;
-proc freq data=adsl noprint;
-    tables SAFFL / out=ds_saffl;
-run;
-proc freq data=adsl noprint;
-    tables FASFL / out=ds_fasfl;
-run;
-proc freq data=adsl noprint;
-    tables PPSFL / out=ds_ppsfl;
-run;
-proc freq data=adsl noprint;
-    tables DLTFL / out=ds_dltfl;
-run;
-proc freq data=adsl noprint;
-    tables PKFL / out=ds_pkfl;
-run;
-proc freq data=adsl noprint;
-    tables ADAFL / out=ds_adafl;
-run;
-%OUTPUT_ANALYSIS_SET_N(adsl, output_1, N_PER, 'CHAR');
-%EDIT_N_PER(ds_saffl, output_2, SAFFL);
-%EDIT_N_PER(ds_fasfl, output_3, FASFL);
-%EDIT_N_PER(ds_ppsfl, output_4, PPSFL);
-%EDIT_N_PER(ds_dltfl, output_5, DLTFL);
-%EDIT_N_PER(ds_pkfl, output_6, PKFL);
-%EDIT_N_PER(ds_adafl, output_7, ADAFL);
-data output_ds;
-    set output_1
-        output_2
-        output_3
-        output_4
-        output_5
-        output_6
-        output_7;
-run;
+%macro EDIT_T11_1_1();
+    %local seq i cnt ds_names ds_cnt;
+    %let ds_names=%str(SAFFL, FASFL, PPSFL, DLTFL, PKFL, ADAFL);
+    %let cnt=%sysfunc(countc(&ds_names., ','));
+    %let ds_cnt=%eval(&cnt+1);
+    %OUTPUT_ANALYSIS_SET_N(adsl, output_n, N, 'CHAR');
+    %do i=1 %to &ds_cnt.;
+      %let val=%sysfunc(strip(%scan(&ds_names., &i., ',')));
+      %EDIT_N_PER_2(adsl, temp_output_&i._1, &val., %str('Y, N'), ',', 0);
+      data output_&i.;
+          set temp_output_&i._1;
+          N_PER=cat(N, ' (', strip(PER), ')');
+          keep N_PER;
+      run;
+    %end;
+    data output_ds;
+        set output_1-output_&ds_cnt.;
+    run;
+%mend EDIT_T11_1_1;
+%EDIT_T11_1_1;
 %OPEN_EXCEL(&template.);
-%SET_EXCEL(output_ds, 7, 3, %str(N_PER), &output_file_name.);
+%SET_EXCEL(output_n, 7, 3, %str(N), &output_file_name.);
+%SET_EXCEL(output_ds, 8, 3, %str(N_PER), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);

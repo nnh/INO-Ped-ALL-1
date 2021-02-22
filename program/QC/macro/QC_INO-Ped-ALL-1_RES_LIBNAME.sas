@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-17
+Date : 2020-2-22
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -149,7 +149,17 @@ SAS version : 9.4
         put '[file.close(0)]';
     run;
     filename cmdexcel clear;
-%mend;
+%mend OUTPUT_EXCEL;
+%macro CLEAR_EXCEL(filename, sheetname, start_row);
+    filename sys dde 'excel|system';
+    data null;
+        file sys;
+        put "[workbook.activate(""[&filename.]&sheetname."")]";
+        put "[select(%bquote("r&start_row.:r99999"))]";
+        put '[edit.delete(3)]';
+        put '[select("r1c1")]';
+    run;
+%mend CLEAR_EXCEL;
 %macro OUTPUT_ANALYSIS_SET_N(input_ds, output_ds, output_var, var_type);
     data &output_ds.;
         if &var_type.='CHAR' then do;
