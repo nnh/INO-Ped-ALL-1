@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.1.2.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-22
+Date : 2021-2-24
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -48,6 +48,7 @@ proc sql noprint;
     where (AVALC ^= 'COMPLETED') and (PARAMCD = 'DISCON');
 quit;
 %OPEN_EXCEL(&template.);
+%CLEAR_EXCEL(&output_file_name., 6);
 %SET_EXCEL(adds, 6, 2, %str(SUBJID DOSELEVEL SITENM SEX AGE ADT ASTDY AVALC), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);

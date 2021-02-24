@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.24.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-17
+Date : 2021-2-24
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -30,6 +30,18 @@ options mprint mlogic symbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
+%macro EDIT_T14_3_24();
+    %local target_cnt;
+    proc sql noprint;
+        select count(*) into: target_cnt from adae_vod; 
+    quit;
+    %if &target_cnt. > 0 %then %do;
+      %EDIT_T14_3_x_MAIN(adae_vod);
+    %end;
+    %else %do;
+      %EDIT_T14_3_x_OBS_EMPTY();
+    %end;
+%mend EDIT_T14_3_24;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
@@ -65,8 +77,9 @@ proc sql noprint;
     from adae_llt a left join non_hsct_adpr_list b on a.SUBJID = b.SUBJID
     where a.TRTSDT <= b.ASTDT;
 quit;
-%EDIT_T14_3_x_MAIN(adae_vod);
+%EDIT_T14_3_24;
 %OPEN_EXCEL(&template.);
+%CLEAR_EXCEL(&output_file_name., 7);
 %SET_EXCEL(set_output_3, 7, 2, %str(output), &output_file_name.);
 %SET_EXCEL(set_output_1, 7, 3, %str(N), &output_file_name.);
 %SET_EXCEL(set_output_2, 8, 3, %str(N_PER_8), &output_file_name.);

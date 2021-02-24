@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T11.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-22
+Date : 2021-2-24
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -39,7 +39,7 @@ options mprint mlogic symbolgen;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
-%let output_start_row=7;
+%let target_flg='';
 libname libinput "&inputpath." ACCESS=READONLY;
 data adsl;
     set libinput.adsl;

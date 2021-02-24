@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-22
+Date : 2020-2-24
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -134,7 +134,7 @@ SAS version : 9.4
 %mend SET_EXCEL;
 %macro OUTPUT_EXCEL(target);
     filename cmdexcel dde 'excel|system';
-    data _null_;
+    data _NULL_;
         fname="tempfile";
         rc=filename(fname, "&target.");
         if rc = 0 and fexist(fname) then do;
@@ -142,7 +142,7 @@ SAS version : 9.4
         end;
         rc=filename(fname);
     run;
-    data _null_;
+    data _NULL_;
         file cmdexcel;
         put '[error(false)]';
         put "%str([save.as(%"&target.%")])";
@@ -150,15 +150,16 @@ SAS version : 9.4
     run;
     filename cmdexcel clear;
 %mend OUTPUT_EXCEL;
-%macro CLEAR_EXCEL(filename, sheetname, start_row);
-    filename sys dde 'excel|system';
-    data null;
-        file sys;
-        put "[workbook.activate(""[&filename.]&sheetname."")]";
+%macro CLEAR_EXCEL(sheetname, start_row);
+    filename cmdexcel dde 'excel|system';
+    data _NULL_;
+        file cmdexcel;
+        put "[workbook.activate(""[INO-Ped-ALL-1_STAT_RES_&sheetname..xlsx]&sheetname."")]";
         put "[select(%bquote("r&start_row.:r99999"))]";
         put '[edit.delete(3)]';
-        put '[select("r1c1")]';
+        put '[select("R1C1")]';
     run;
+    filename cmdexcel clear;
 %mend CLEAR_EXCEL;
 %macro OUTPUT_ANALYSIS_SET_N(input_ds, output_ds, output_var, var_type);
     data &output_ds.;
@@ -426,25 +427,18 @@ SAS version : 9.4
       run;
     %end;
 %mend EDIT_T14_3_x;
-%macro EDIT_T14_3_x_OBS_EMPTY();
-    %local cnt;
-    data _NULL_;
-        call symput('cnt', NOBS);
-        if 0 then do;
-          set set_output_2 nobs=NOBS;
-        end;
-        stop;
+%macro EDIT_T14_3_x_OBS_EMPTY();    
+    %SUBJID_N(set_output_1, N, N);
+    data set_output_2;
+        N_PER_8='-';
+        output;
     run;
-    %if &cnt.=0 %then %do;
-        data set_output_2;
-            N_PER_8='-';
-            output;
-        run;
-        proc sql noprint;
-            insert into set_output_3
-            set output='No Events';
-        quit;
-    %end;
+    data set_output_3;
+        output='Safety Analysis Set';
+        output;
+        output='No Events';
+        output;
+    run;
 %mend EDIT_T14_3_x_OBS_EMPTY;
 %macro EDIT_T14_3_x_MAIN(input_ds);
     %global row_cnt N;
@@ -504,7 +498,6 @@ SAS version : 9.4
         set temp_term_of_ae_1
             temp_term_of_ae_2;
     run;
-    %EDIT_T14_3_x_OBS_EMPTY;
 %mend EDIT_T14_3_x_MAIN;
 %macro SUBJID_N(output_ds, output_ds_var, output_var);
     proc sql noprint;

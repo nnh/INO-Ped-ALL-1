@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.2.2.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-10
+Date : 2021-2-24
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -31,7 +31,8 @@ options mprint mlogic symbolgen noquotelenmax;
     &_path.
 %mend GET_DIRECTORY_PATH;
 %macro EDIT_T14_2_2_1();
-    %local i cnt var nobs;
+    %local i var nobs;
+    %global cnt;
     %let cnt=%sysfunc(countc(&target., ','));
     %do i=1 %to %eval(&cnt+1);
       %let var=%sysfunc(strip(%scan(&target., &i., ',')));
@@ -68,7 +69,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %mend EDIT_T14_2_2_1;
 %macro SET_EXCEL_T_14_2_2_1();
     %local i;
-    %do i=0 %to 8;
+    %do i=0 %to %eval(&cnt+1);
       %let seq=%eval(1+&i.);
       %SET_EXCEL(output_&seq., 7, %eval(3+&i.), %str(N_PER), &output_file_name.);
     %end;
@@ -92,8 +93,13 @@ run;
 %let target=%str(CR, CRi, PARTIAL RESPONSE, RESISTANT DISEASE, PROGRESSIVE DISEASE, DEATH DURING APLASIA, INDETERMINATE);
 %let seq=1;
 %OUTPUT_ANALYSIS_SET_N(adrs, output_&seq., N_PER, 'CHAR');
+data doselevel;
+    DOSELEVEL=1;
+    output;
+run;
 %EDIT_T14_2_2_1();
 %OPEN_EXCEL(&template.);
+%SET_EXCEL(doselevel, 7, 2, %str(DOSELEVEL), &output_file_name.);
 %SET_EXCEL_T_14_2_2_1();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);

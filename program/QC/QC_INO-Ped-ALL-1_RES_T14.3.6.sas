@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.6.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-16
+Date : 2021-2-24
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -50,6 +50,7 @@ proc sql noprint;
 quit;
 %EDIT_T14_3_x_MAIN(adae_llt);
 %OPEN_EXCEL(&template.);
+%CLEAR_EXCEL(&output_file_name., 8);
 %SET_EXCEL(set_output_3, 8, 2, %str(OUTPUT), &output_file_name.);
 %SET_EXCEL(set_output_1, 8, 3, %str(N), &output_file_name.);
 %SET_EXCEL(set_output_2, 9, 3, %str(N_PER N_PER_2 N_PER_3 N_PER_4 N_PER_5 N_PER_6 N_PER_7 N_PER_8), &output_file_name.);
