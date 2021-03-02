@@ -39,9 +39,8 @@ options mprint mlogic symbolgen noquotelenmax;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
-%let target_flg=SAFFL;
+%let target_flg='';
 libname libinput "&inputpath." ACCESS=READONLY;
-data aaa; set libinput.adds; run;
 proc sql noprint;
     create table adds as
     select SUBJID, 1 as DOSELEVEL, SITENM, SEX, AGE, ADT, ASTDY, AVALC
