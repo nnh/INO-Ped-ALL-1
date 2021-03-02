@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.6.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-2-25
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -41,7 +41,6 @@ options mprint mlogic symbolgen noquotelenmax;
 %let output=&outputpath.\&outputname.;
 %let target_flg=SAFFL;
 libname libinput "&inputpath." ACCESS=READONLY;
-data aaa; set libinput.adae;run;
 proc sql noprint;
     create table adae as
     select 1 as temp_DOSELEVEL, SUBJID as temp_SUBJID, AETERM, AETOXGR, AESER, ASTDT, AENDT, ADURN, ASTDY, AEACN, AEREL, COVAL, AEOUT

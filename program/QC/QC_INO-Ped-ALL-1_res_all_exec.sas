@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_res_all_exec.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-24
+Date : 2020-3-2
 SAS version : 9.4
 **************************************************************************;
 %macro WAIT_TO_EXEC();
@@ -18,6 +18,8 @@ SAS version : 9.4
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.1.1.sas" / SOURCE2;
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.2.1.sas" / SOURCE2;
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.3.1.sas" / SOURCE2;
+%inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.4.sas" / SOURCE2;
+%inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.7.sas" / SOURCE2;
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.2.9.sas" / SOURCE2;
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.3.1.sas" / SOURCE2;
 %inc "\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\program\QC\QC_INO-Ped-ALL-1_RES_T14.3.6.sas" / SOURCE2;

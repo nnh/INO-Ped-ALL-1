@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-24
+Date : 2020-2-26
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -161,6 +161,15 @@ SAS version : 9.4
     run;
     filename cmdexcel clear;
 %mend CLEAR_EXCEL;
+%macro CLOSE_EXSEL_NOSAVE();
+    filename cmdexcel dde 'excel|system';
+    data _NULL_;
+        file cmdexcel;
+        put '[error(false)]';
+        put '[file.close(0)]';
+    run;
+    filename cmdexcel clear;
+%mend CLOSE_EXSEL_NOSAVE;
 %macro OUTPUT_ANALYSIS_SET_N(input_ds, output_ds, output_var, var_type);
     data &output_ds.;
         if &var_type.='CHAR' then do;
@@ -511,6 +520,16 @@ SAS version : 9.4
         select &output_ds_var. into: &output_var. from &output_ds.;
     quit;
 %mend SUBJID_N;
+%MACRO OUTPUT_FILE(output_file_name) ;
+
+  DATA _NULL_ ;
+       CALL SYMPUT( "_YYMM_" , COMPRESS( PUT( DATE() , YYMMDDN8. ) ) ) ;
+       CALL SYMPUT( "_TIME_" , COMPRESS( PUT( TIME() , TIME5. ) , " :" ) ) ;
+  RUN ;
+
+  DM OUTPUT "FILE '&outputpath.\&output_file_name..txt' REPLACE" ;
+  DM "OUTPUT ; CLEAR ; LOG ; CLEAR ; " ;
+%MEND ;
 %MACRO SDTM_FIN(output_file_name) ;
 
   DATA _NULL_ ;
@@ -522,6 +541,7 @@ SAS version : 9.4
   DM "OUTPUT ; CLEAR ; LOG ; CLEAR ; " ;
 %MEND ;
 %let inputpath=&projectpath.\input\ads;
+%let extpath=&projectpath.\input\ext;
 %let templatepath=&projectpath.\output\template;
 %let outputpath=&projectpath.\output\QC;
 %let log=&projectpath.\log\QC\result;

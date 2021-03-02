@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.28.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-3-2
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -41,29 +41,73 @@ options mprint mlogic symbolgen noquotelenmax;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
 %let target_flg=SAFFL;
+%let normal_range_filename=INO-Ped-ALL-1_LB_Normal Range_20201228.xlsx;
+%let normal_range=&extpath.\&normal_range_filename.;
+%let normal_range_sheetname=ADLB_Normal Range_age;
 libname libinput "&inputpath." ACCESS=READONLY;
 data adlb;
     set libinput.adlb;
     where &target_flg.='Y';
 run;
+%OPEN_EXCEL(&normal_range.);
+filename cmdexcel dde "excel|[&normal_range_filename.]&normal_range_sheetname.!R2C1:R9999C13";
+data raw_normal_range;
+    length var1-var13 $200;
+    infile cmdexcel notab dlm='09'x dsd missover lrecl=30000 firstobs=1;
+    input var1-var13;
+run;
+filename cmdexcel clear;
+data temp_normal_range_1;
+    set raw_normal_range;
+    where (var3='AST') or (var3='ALT') or (var3='BILI'); 
+    rename var3=PARAMCD var6=SEX var7=AGE var8=LBORRES var9=LOW var10=HIGH;
+    keep var3 var6 var7 var8 var9 var10;
+run;
+%CLOSE_EXSEL_NOSAVE;
+proc sql noprint;
+    create table temp_normal_range_2 as
+    select *, 'M' as temp_SEX
+    from temp_normal_range_1
+    where PARAMCD = 'BILI'
+    outer union corr
+    select *, 'F' as temp_SEX
+    from temp_normal_range_1
+    where PARAMCD = 'BILI';
+quit;
+data normal_range;
+    set temp_normal_range_1
+        temp_normal_range_2(drop=SEX rename=(temp_SEX=SEX));
+run;
 %SUBJID_N(set_output_1, N, N);
+data raw_adlb;
+    set libinput.adlb;
+run;
+proc sql noprint;
+    create table adlb as
+    select a.SUBJID, a.PARAMCD, a.AVAL, a.AAGE, a.SEX, b.LBORRES, 
+           input(b.LOW, best12.) as LOW, input(b.HIGH, best12.) as HIGH
+    from raw_adlb a, normal_range b
+    where (a.PARAMCD = b.PARAMCD) and
+          (a.AAGE = input(b.AGE, best12.)) and
+          (a.SEX = b.SEX);
+quit;
 proc sql noprint;
     create table adlb_ast as
     select * 
     from adlb
-    where (PARAMCD='AST') and (AVAL >= (BASE * 3));
+    where (PARAMCD='AST') and (AVAL >= (HIGH * 3));
 quit;
 proc sql noprint;
     create table adlb_alt as
     select * 
     from adlb
-    where (PARAMCD='ALT') and (AVAL >= (BASE * 3));
+    where (PARAMCD='ALT') and (AVAL >= (HIGH * 3));
 quit;
 proc sql noprint;
     create table adlb_bili as
     select * 
     from adlb
-    where (PARAMCD='BILI') and (AVAL >= (BASE * 2));
+    where (PARAMCD='BILI') and (AVAL >= (HIGH * 2));
 quit;
 data adlb_ast_alt;
     set adlb_ast

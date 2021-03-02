@@ -1,8 +1,8 @@
 **************************************************************************
-Program Name : QC_INO-Ped-ALL-1_RES_T14.2.3.1.sas
+Program Name : QC_INO-Ped-ALL-1_RES_T14.2.7.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-25
+Date : 2021-2-26
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -34,7 +34,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
-%let output_file_name=T14.2.3.1;
+%let output_file_name=T14.2.7;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
@@ -42,59 +42,35 @@ options mprint mlogic symbolgen noquotelenmax;
 %let target_flg=PPSFL;
 libname libinput "&inputpath." ACCESS=READONLY;
 proc sql noprint;
-    create table bestresp_CRCRi as
-    select *
-    from libinput.adrs
-    where ((&target_flg. = 'Y') and (PARAMCD = 'BESTRESP')) and ((AVALC = 'CR') or (AVALC = 'CRi'));
+    create table adtte as
+    select *, 1 as Cell from libinput.adtte
+    where (&target_flg. = 'Y') and (PARAMCD = 'NONR');
 quit;
-proc sql noprint;
-    create table adrs_CRCRi as
-    select *
-    from libinput.adrs
-    where SUBJID in (select SUBJID from bestresp_CRCRi);
-quit;
-proc sql noprint;
-    create table adrs as
-    select SUBJID, AVALC,
-           case
-             when AVALC = 'NEGATIVE' then '1'
-             else '0' 
-           end as MRD, ADT from adrs_CRCRi
-    where (&target_flg. = 'Y') and (PARAMCD = 'MRD')
-    order by SUBJID, ADT desc;
-quit;
-data temp_adrs_1;
-    set adrs;
-    by SUBJID;
-    if first.SUBJID then output;
+data dmy;
+    AVAL=100;
+    CNSR=0;
+    Cell=2;
+    output;
+    AVAL=150;
+    CNSR=1;
+    Cell=2;
+    output;
+    AVAL=200;
+    CNSR=2;
+    Cell=2;
+    output;
 run;
-%EDIT_N_PER_3(temp_adrs_1, output_1, MRD);
-%OPEN_EXCEL(&template.);
-%SET_EXCEL(output_1, 8, 3, %str(N TARGET_N PER CI_L CI_U), &output_file_name.);
-%OUTPUT_EXCEL(&output.);
+data temp_adtte;
+    set adtte
+        dmy;
+run;
+proc lifetest data=temp_adtte(where=(Cell=1)) atrisk plots=s(atrisk=0 to 270 by 30 cl); 
+    time AVAL * CNSR(1, 2);
+run;
+%OUTPUT_FILE(&output_file_name._1);
+proc lifetest data=temp_adtte atrisk plots=cif(test cl); 
+    time AVAL * CNSR(1) / failcode=0; 
+    strata Cell; 
+run;
+%OUTPUT_FILE(&output_file_name._2);
 %SDTM_FIN(&output_file_name.);
-
-data test_adrs;
-  set libinput.adrs;
-  if  &target_flg. = 'Y';
-run;
-data  base;
-  set  test_adrs;
-  if  PARAMCD="MRD";
-run ;
-
-data  best;
-  set  test_adrs;
-  if  PARAMCD="BESTRESP" and AVALC in("CR","CRi");
-  keep USUBJID;
-run ;
-
-data  temp_base;
-  merge  base best(in=a);
-  by  USUBJID;
-  if a;
-  keep USUBJID AVALC ADT;
-run ;
-
-proc sort data=temp_base; by USUBJID AVALC; run ;
-proc sort data=temp_base nodupkey; by USUBJID ; run ;
