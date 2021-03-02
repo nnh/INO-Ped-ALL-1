@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.23.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-3-2
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -47,6 +47,17 @@ data adpr;
     keep SUBJID ASTDT;
 run;
 proc sql noprint;
+    create table adtte as
+    select distinct SUBJID
+    from libinput.adtte
+    where AHSCT = 'Y';
+
+    create table temp_adpr_1 as
+    select *
+    from adpr
+    where SUBJID in (select SUBJID from adtte);
+quit;
+proc sql noprint;
     create table adae_llt as
     select SUBJID, AESOC, AEDECOD, &target_flg., max(AETOXGR) as AETOXGR, TRTSDT
     from libinput.adae
@@ -59,7 +70,7 @@ proc sql noprint;
     from adae_llt a left join adpr b on a.SUBJID = b.SUBJID
     where a.TRTSDT <= b.ASTDT;
 quit;
-%EDIT_T14_3_x_MAIN(adae_vod);
+%EDIT_T14_3_x_MAIN(adae_vod, n_input=adtte);
 %OPEN_EXCEL(&template.);
 %CLEAR_EXCEL(&output_file_name., 7);
 %SET_EXCEL(set_output_3, 7, 2, %str(output), &output_file_name.);

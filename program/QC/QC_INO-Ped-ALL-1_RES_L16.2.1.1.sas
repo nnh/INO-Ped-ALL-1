@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-3-2
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -41,11 +41,13 @@ options mprint mlogic symbolgen noquotelenmax;
 %let output=&outputpath.\&outputname.;
 %let target_flg=SAFFL;
 libname libinput "&inputpath." ACCESS=READONLY;
+data aaa; set libinput.adds; run;
 proc sql noprint;
     create table adds as
     select SUBJID, 1 as DOSELEVEL, SITENM, SEX, AGE, ADT, ASTDY, AVALC
     from libinput.adds
-    where (COMPLFL = 'N') and (PARAMCD = 'WITHDRAW');
+    where PARAMCD = 'WITHDRAW'
+    order by SUBJID;
 quit;
 %OPEN_EXCEL(&template.);
 %CLEAR_EXCEL(&output_file_name., 6);

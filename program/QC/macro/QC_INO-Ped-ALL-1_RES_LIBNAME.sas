@@ -449,7 +449,7 @@ SAS version : 9.4
         output;
     run;
 %mend EDIT_T14_3_x_OBS_EMPTY;
-%macro EDIT_T14_3_x_MAIN(input_ds);
+%macro EDIT_T14_3_x_MAIN(input_ds, n_input=.);
     %global row_cnt N;
     proc sql noprint;
         create table adae_soc as
@@ -476,7 +476,16 @@ SAS version : 9.4
         select count(*) into: row_cnt trimmed
         from adae_soc_llt;
     quit;
-    %SUBJID_N(set_output_1, N, N);
+    
+    %if &n_input.=. %then %do;
+      %SUBJID_N(set_output_1, N, N);
+    %end;
+    %else %do;
+      %OUTPUT_ANALYSIS_SET_N(&n_input., set_output_1, N, '');
+      proc sql noprint;
+          select count(*) into: N from &n_input.;
+      quit;
+    %end;
     %EDIT_T14_3_x;
     %if &row_cnt.>1 %then %do;
       data set_output_2;

@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-3-2
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -127,8 +127,8 @@ quit;
 proc sql noprint;
     create table adae_dose_delay_and_reduction as
     select distinct SUBJID, &target_flg.
-    from adae
-    where (AEACN = 'DRUG INTERRUPTED') or (AEACN = 'DOSE REDUCED');
+    from adae_dose_delay
+    where SUBJID in (select SUBJID from adae_dose_reduction);
 quit;
 %EDIT_T14_3_1(adae_dose_delay_and_reduction, &N.);
 %OPEN_EXCEL(&template.);
