@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-2-26
+Date : 2020-3-17
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -529,6 +529,21 @@ SAS version : 9.4
         select &output_ds_var. into: &output_var. from &output_ds.;
     quit;
 %mend SUBJID_N;
+%macro READ_DEVIATIONS(output_ds);
+    %local deviations_filename deviations deviations_sheetname;
+    %let deviations_filename=INO-Ped-ALL-1_Table3_採否検討資料用_逸脱一覧最終版.xlsx;
+    %let deviations=&extpath.\&deviations_filename.;
+    %let deviations_sheetname=採否検討資料用_逸脱一覧最終版;
+    %OPEN_EXCEL(&deviations.);
+    filename cmdexcel dde "excel|[&deviations_filename.]&deviations_sheetname.!R2C1:R9999C4";
+    data &output_ds.;
+        length var1-var4 $200;
+        infile cmdexcel notab dlm='09'x dsd missover lrecl=30000 firstobs=1;
+        input var1-var4;
+    run;
+    filename cmdexcel clear;
+    %CLOSE_EXSEL_NOSAVE;
+%mend READ_DEVIATIONS;
 %MACRO OUTPUT_FILE(output_file_name) ;
 
   DATA _NULL_ ;
