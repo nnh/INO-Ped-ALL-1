@@ -33,6 +33,7 @@ options mprint mlogic symbolgen;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
+%global N;
 * Main processing start;
 %let output_file_name=T11.3.3;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
@@ -41,55 +42,53 @@ options mprint mlogic symbolgen;
 %let output=&outputpath.\&outputname.;
 %let target_flg=SAFFL;
 libname libinput "&inputpath." ACCESS=READONLY;
-data adec;
-    set libinput.adec;
+data adcm;
+    set libinput.adcm;
     where &target_flg.='Y';
 run;
-data temp_adec_1;
-    set adec;
-    where (PARAMCD='INT') or (PARAMCD='RES');
-    keep SUBJID PARAM PARAMCD AVAL AVALC AVISIT AVISITN;
-run;
 proc sql noprint;
-    select ((max(AVISITN)/100) - 1) into:max_cycle from temp_adec_1;
+    create table temp_adcm_1 as
+    select distinct SUBJID, CMDECOD, 'Y' as AVALC
+    from adcm
+    where CMCAT = 'PRIOR TREATMENT';
+
+    create table treatment_list as
+    select distinct CMDECOD
+    from temp_adcm_1
+    order by CMDECOD;
+
+    select count(*),
+           CMDECOD 
+    into:treatment_cnt,
+        :treatment_1-:treatment_9999 
+    from treatment_list;
 quit;
-%EDIT_T11_3_2();
-%OPEN_EXCEL(&template.);
-%SET_EXCEL(output_n_1, 7, 4, %str(N), &output_file_name.);
-%SET_EXCEL(output_n_2, 7, 5, %str(N), &output_file_name.);
-%SET_EXCEL(output_n_3, 7, 6, %str(N), &output_file_name.);
-%SET_EXCEL(output_n_4, 7, 7, %str(N), &output_file_name.);
-%SET_EXCEL(output_1, 8, 4, %str(N_PER), &output_file_name.);
-%SET_EXCEL(output_2, 8, 5, %str(N_PER), &output_file_name.);
-%SET_EXCEL(output_3, 8, 6, %str(N_PER), &output_file_name.);
-%SET_EXCEL(output_4, 8, 7, %str(N_PER), &output_file_name.);
-%OUTPUT_EXCEL(&output.);
-%SDTM_FIN(&output_file_name.);
-%macro EDIT_T11_3_2();
-    %do i=1 %to &max_cycle.;
-      %let visitn=%eval((&i.+1)*100);
-      data int_&i. res_&i.;
-          set temp_adec_1;
-          if (AVISITN=&visitn.) and (PARAMCD='INT') then output int_&i.;
-          if (AVISITN=&visitn.) and (PARAMCD='RES') then output res_&i.;
-      run;
-      %OUTPUT_ANALYSIS_SET_N(int_&i., output_n_&i., N, '');
-      %EDIT_N_PER_2(int_&i., output_int_&i._1, AVALC, %str('Y, N'), ',', 0);
-      %EDIT_N_PER_2(res_&i., output_res_&i._1, AVALC, %str('Y, N'), ',', 0);
-      data int_&i._Y int_&i._N;
-          set output_int_&i._1;
-          if val='Y' then output int_&i._Y;
-          if val='N' then output int_&i._N;
-      run;
-      data res_&i._Y res_&i._N;
-          set output_res_&i._1;
-          if val='Y' then output res_&i._Y;
-          if val='N' then output res_&i._N;
-      run;
+%SUBJID_N(output_n, N, N);
+%macro EDIT_T11_3_3();
+    %do i=1 %to &treatment_cnt.;
+      proc sql noprint;
+          create table temp_adcm_2_&i. as
+          select *
+          from temp_adcm_1 
+          where CMDECOD = "&&treatment_&i.";
+      quit;
+      %EDIT_N_PER_2(temp_adcm_2_&i., temp_output_&i., AVALC, %str('Y, N'), ',', &N.);
       data output_&i.;
-          set int_&i._N int_&i._Y res_&i._N res_&i._Y;
-          N_PER=CAT(N, ' (', strip(PER), ')');
-          keep N_PER;
+          format treatment N PER;
+          length treatment $200;
+          set temp_output_&i.;
+          where val='Y';
+          treatment="&&treatment_&i.";
+          keep treatment N PER;
       run;
     %end;
-%mend EDIT_T11_3_2;
+    data output_ds;
+        set output_1-output_%eval(&treatment_cnt.);
+    run;
+%mend EDIT_T11_3_3;
+%EDIT_T11_3_3();
+%OPEN_EXCEL(&template.);
+%SET_EXCEL(output_n, 6, 3, %str(N), &output_file_name.);
+%SET_EXCEL(output_ds, 7, 2, %str(treatment N PER), &output_file_name.);
+%OUTPUT_EXCEL(&output.);
+%SDTM_FIN(&output_file_name.);
