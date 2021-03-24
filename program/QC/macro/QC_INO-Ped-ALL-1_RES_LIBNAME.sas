@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_LIBNAME.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2020-3-17
+Date : 2020-3-24
 SAS version : 9.4
 **************************************************************************;
 %macro EDIT_SUBJID_LIST(input_ds, output_ds);
@@ -212,6 +212,26 @@ SAS version : 9.4
     run;
     %SET_SORT_ORDER(temp_ds_2, &output_ds., &target_var., &sort_order., &delimiter.);
 %mend EDIT_N_PER_2;
+%macro EDIT_N_PER_2_1(input_ds, output_ds, target_var, sort_order, delimiter, mh_n, digit);
+    /* N, PER */
+    proc freq data=&input_ds. noprint;
+       tables &target_var. / out=temp_ds;
+    run;
+    data &output_ds.;
+        length STR_PER $200;
+        set temp_ds;
+        N=COUNT;
+        if &mh_n.=0 then do;
+          PER=round(PERCENT, 0.1);
+          STR_PER=put(round(PERCENT, &digit.), 8.2);
+        end;
+        else do;
+          PER=round((N/&mh_n.)*100, 0.1);
+          STR_PER=put(round((N/&mh_n.)*100, &digit.), 8.2);
+        end;
+        keep &target_var. N PER STR_PER;
+    run;
+%mend EDIT_N_PER_2_1;
 %macro EDIT_N_PER_3(input_ds, output_ds, target_var, weight_f=.);
     /* N, PER, 95%CI */
     %local format1 digit1;
