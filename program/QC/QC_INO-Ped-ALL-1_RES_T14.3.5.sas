@@ -1,5 +1,5 @@
 **************************************************************************
-Program Name : QC_INO-Ped-ALL-1_RES_T14.3.4.sas
+Program Name : QC_INO-Ped-ALL-1_RES_T14.3.5.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
 Date : 2021-3-29
@@ -30,7 +30,7 @@ options mprint mlogic symbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
-%macro EDIT_T14_3_4(target_ds);
+%macro EDIT_T14_3_5(target_ds);
     %local target_cnt;
     proc sql noprint;
         select count(*) into: target_cnt from &target_ds.; 
@@ -46,12 +46,12 @@ options mprint mlogic symbolgen noquotelenmax;
           output;
       run;
     %end;
-%mend EDIT_T14_3_4;
+%mend EDIT_T14_3_5;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
-%let output_file_name=T14.3.4;
+%let output_file_name=T14.3.5;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
@@ -62,7 +62,7 @@ proc sql noprint;
     create table adae_llt as
     select SUBJID, AESOC, AEDECOD, &target_flg., max(AETOXGR) as AETOXGR
     from libinput.adae
-    where (&target_flg.='Y') and (AEACN='DRUG REDUCED')
+    where (&target_flg.='Y') and (AEACN='DRUG INTERRUPTED')
     group by SUBJID, AESOC, AEDECOD, &target_flg.;
 quit;
 proc sql noprint;
@@ -74,7 +74,7 @@ proc sql noprint;
     from adae_llt
     order by AESOC, AEDECOD;
 quit;
-%EDIT_T14_3_4(temp_ae_list);
+%EDIT_T14_3_5(temp_ae_list);
 %OPEN_EXCEL(&template.);
 %CLEAR_EXCEL(&output_file_name., 8);
 %SET_EXCEL(output_n, 7, 3, %str(N), &output_file_name.);
