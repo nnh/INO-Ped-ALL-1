@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.25.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-3-30
+Date : 2021-3-31
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -86,7 +86,10 @@ proc sql noprint;
 quit;
 
 %macro EDIT_T14_3_25();
-    %local i j test_cnt avisit_cnt;
+    %local i j; 
+    %global test_cnt avisit_cnt max_col min_col;
+    %let max_col=%eval(&avisit_cnt.+1);
+    %let min_col=%eval(&max_col.+1);
     proc sql noprint;
         select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
         select AVISITN, count(AVISITN) into: avisit_1-:avisit_99, :avisit_cnt from avisit_list;
@@ -102,20 +105,34 @@ quit;
             select distinct SUBJID, BASE as AVAL
             from temp_adlb_&i.;
         quit;
-        %do j=1 %to &avisit_cnt.;
-            proc sql noprint;
-                create table temp_adlb_&i._&j. as
-                select SUBJID, max(AVAL) as AVAL
-                from temp_adlb_&i.
-                where AVISITN = &&avisit_&j.
-                group by SUBJID;
-            quit;
-            %EDIT_MEANS(temp_adlb_&i._&j., means_&i._&j., AVAL);
+        %EDIT_MEANS_2(temp_adlb_&i._0, means_&i._0, AVAL);
+        %do j=1 %to &min_col.;
+          proc sql noprint;
+            %if &j.=&max_col. %then %do;
+              create table temp_adlb_&i._&max_col. as
+              select SUBJID, max(AVAL) as AVAL
+              from temp_adlb_&i.
+              group by SUBJID;
+            %end;
+            %else %if &j.=&min_col. %then %do;
+              create table temp_adlb_&i._&min_col. as
+              select SUBJID, min(AVAL) as AVAL
+              from temp_adlb_&i.
+              group by SUBJID;
+            %end;
+            %else %do;
+              create table temp_adlb_&i._&j. as
+              select SUBJID, max(AVAL) as AVAL
+              from temp_adlb_&i.
+              where AVISITN = &&avisit_&j.
+              group by SUBJID;
+            %end;
+          quit;
+          %EDIT_MEANS_2(temp_adlb_&i._&j., means_&i._&j., AVAL);
         %end;
     %end;
 
 %mend EDIT_T14_3_25;
-%EDIT_T14_3_25();
 %macro EDIT_MEANS_2(input_ds, output_ds, target_var);
     %let output_var=output;
     proc means data=&input_ds.  noprint;
@@ -134,13 +151,23 @@ quit;
         keep &output_var.;
     run;
 %mend EDIT_MEANS_2;
-%EDIT_MEANS_2(temp_adlb_1_1, aiu, AVAL);
-
-
+%EDIT_T14_3_25();
+%macro aaa();
+    %local i j output_row output_col;
+    %do i=1 %to 2;
+      %let output_row=%eval(7+(&i.-1)*14);
+      %do j=0 %to &min_col.;
+      %let output_col=%eval(4+&j.);
+        %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
+      %end;
+    %end;
+%mend aaa;
+%aaa();
 
 
 %OPEN_EXCEL(&template.);
-%CLEAR_EXCEL(&output_file_name., 8);
+
+
 %SET_EXCEL(output_n, 7, 3, %str(N), &output_file_name.);
 %SET_EXCEL(output_soc_pt, 8, 2, %str(AETERM N_PER), &output_file_name.);
 %OUTPUT_EXCEL(&output.);
