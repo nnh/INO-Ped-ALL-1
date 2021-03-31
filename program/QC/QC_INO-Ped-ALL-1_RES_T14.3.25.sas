@@ -34,6 +34,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
+%global test_cnt avisit_cnt max_col min_col;
 %let output_file_name=T14.3.25;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
@@ -87,9 +88,8 @@ quit;
 
 %macro EDIT_T14_3_25();
     %local i j; 
-    %global test_cnt avisit_cnt max_col min_col;
     %let max_col=%eval(&avisit_cnt.+1);
-    %let min_col=%eval(&max_col.+1);
+    %let min_col=%eval(&avisit_cnt.+2);
     proc sql noprint;
         select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
         select AVISITN, count(AVISITN) into: avisit_1-:avisit_99, :avisit_cnt from avisit_list;
@@ -106,29 +106,38 @@ quit;
             from temp_adlb_&i.;
         quit;
         %EDIT_MEANS_2(temp_adlb_&i._0, means_&i._0, AVAL);
+        data means_comp_&i._0;
+          do i=1 to 6;
+            output='-'; output;
+          end;
+        run;
         %do j=1 %to &min_col.;
           proc sql noprint;
             %if &j.=&max_col. %then %do;
-              create table temp_adlb_&i._&max_col. as
-              select SUBJID, max(AVAL) as AVAL
+              create table temp_adlb_&i._&j. as
+              select distinct SUBJID, max(AVAL) as AVAL, BASE
               from temp_adlb_&i.
               group by SUBJID;
             %end;
             %else %if &j.=&min_col. %then %do;
-              create table temp_adlb_&i._&min_col. as
-              select SUBJID, min(AVAL) as AVAL
+              create table temp_adlb_&i._&j as
+              select distinct SUBJID, min(AVAL) as AVAL, BASE
               from temp_adlb_&i.
               group by SUBJID;
             %end;
             %else %do;
               create table temp_adlb_&i._&j. as
-              select SUBJID, max(AVAL) as AVAL
+              select distinct SUBJID, max(AVAL) as AVAL, BASE
               from temp_adlb_&i.
               where AVISITN = &&avisit_&j.
               group by SUBJID;
             %end;
+              create table temp_adlb_comp_&i._&j. as
+              select SUBJID, (AVAL-BASE) as AVAL
+              from temp_adlb_&i._&j.;
           quit;
           %EDIT_MEANS_2(temp_adlb_&i._&j., means_&i._&j., AVAL);
+          %EDIT_MEANS_2(temp_adlb_comp_&i._&j., means_comp_&i._&j., AVAL);
         %end;
     %end;
 
@@ -152,23 +161,20 @@ quit;
     run;
 %mend EDIT_MEANS_2;
 %EDIT_T14_3_25();
-%macro aaa();
+%macro SET_EXCEL_T14_3_25();
     %local i j output_row output_col;
-    %do i=1 %to 2;
+    %do i=1 %to &test_cnt.;
       %let output_row=%eval(7+(&i.-1)*14);
       %do j=0 %to &min_col.;
       %let output_col=%eval(4+&j.);
         %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
+        %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
       %end;
     %end;
-%mend aaa;
-%aaa();
-
-
+%mend SET_EXCEL_T14_3_25;
 %OPEN_EXCEL(&template.);
-
-
-%SET_EXCEL(output_n, 7, 3, %str(N), &output_file_name.);
-%SET_EXCEL(output_soc_pt, 8, 2, %str(AETERM N_PER), &output_file_name.);
+%SET_EXCEL_T14_3_25();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
+
+%put &min_col.;
