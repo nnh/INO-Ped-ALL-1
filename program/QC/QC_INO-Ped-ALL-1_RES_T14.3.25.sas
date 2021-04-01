@@ -30,6 +30,90 @@ options mprint mlogic symbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
+%macro EDIT_T14_3_25();
+    %local i j; 
+    proc sql noprint;
+        select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
+        select AVISITN, count(AVISITN) into: avisit_1-:avisit_99, :avisit_cnt from avisit_list;
+    quit; 
+    %let max_col=%eval(&avisit_cnt.+1);
+    %let min_col=%eval(&avisit_cnt.+2);
+    %do i=1 %to &test_cnt.;
+        proc sql noprint;
+            create table temp_adlb_&i. as
+            select *
+            from adlb
+            where PARAM = "&&test_&i.";
+
+            create table temp_adlb_&i._0 as
+            select distinct SUBJID, BASE as AVAL
+            from temp_adlb_&i.;
+        quit;
+        %EDIT_MEANS_2(temp_adlb_&i._0, means_&i._0, AVAL);
+        data means_comp_&i._0;
+          do i=1 to 6;
+            output='-'; output;
+          end;
+        run;
+        %do j=1 %to &min_col.;
+          proc sql noprint;
+            %if &j.=&max_col. %then %do;
+              create table temp_adlb_&i._&j. as
+              select distinct SUBJID, max(AVAL) as AVAL, BASE
+              from temp_adlb_&i.
+              group by SUBJID;
+            %end;
+            %else %if &j.=&min_col. %then %do;
+              create table temp_adlb_&i._&j as
+              select distinct SUBJID, min(AVAL) as AVAL, BASE
+              from temp_adlb_&i.
+              group by SUBJID;
+            %end;
+            %else %do;
+              create table temp_adlb_&i._&j. as
+              select distinct SUBJID, max(AVAL) as AVAL, BASE
+              from temp_adlb_&i.
+              where AVISITN = &&avisit_&j.
+              group by SUBJID;
+            %end;
+              create table temp_adlb_comp_&i._&j. as
+              select SUBJID, (AVAL-BASE) as AVAL
+              from temp_adlb_&i._&j.;
+          quit;
+          %EDIT_MEANS_2(temp_adlb_&i._&j., means_&i._&j., AVAL);
+          %EDIT_MEANS_2(temp_adlb_comp_&i._&j., means_comp_&i._&j., AVAL);
+        %end;
+    %end;
+%mend EDIT_T14_3_25;
+%macro EDIT_MEANS_2(input_ds, output_ds, target_var);
+    %let output_var=output;
+    proc means data=&input_ds.  noprint;
+        var &target_var.;
+        output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
+    run;
+    data &output_ds.;
+        length &output_var. $200;
+        set temp_means;
+        &output_var.=n; output;
+        &output_var.=put(temp_mean, 8.2); output;
+        &output_var.=put(temp_sd, 8.3); output;
+        &output_var.=put(min, 8.1); output;
+        &output_var.=put(temp_median, 8.2); output;
+        &output_var.=put(max, 8.1); output;
+        keep &output_var.;
+    run;
+%mend EDIT_MEANS_2;
+%macro SET_EXCEL_T14_3_25();
+    %local i j output_row output_col;
+    %do i=1 %to &test_cnt.;
+      %let output_row=%eval(7+(&i.-1)*14);
+      %do j=0 %to &min_col.;
+      %let output_col=%eval(4+&j.);
+        %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
+        %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
+      %end;
+    %end;
+%mend SET_EXCEL_T14_3_25;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
@@ -85,96 +169,9 @@ proc sql noprint;
     where (AVISITN ^= .) and ((mod(AVISITN, 100) ^= 0) or (AVISITN = 800))
     order by AVISITN;
 quit;
-
-%macro EDIT_T14_3_25();
-    %local i j; 
-    %let max_col=%eval(&avisit_cnt.+1);
-    %let min_col=%eval(&avisit_cnt.+2);
-    proc sql noprint;
-        select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
-        select AVISITN, count(AVISITN) into: avisit_1-:avisit_99, :avisit_cnt from avisit_list;
-    quit; 
-    %do i=1 %to &test_cnt.;
-        proc sql noprint;
-            create table temp_adlb_&i. as
-            select *
-            from adlb
-            where PARAM = "&&test_&i.";
-
-            create table temp_adlb_&i._0 as
-            select distinct SUBJID, BASE as AVAL
-            from temp_adlb_&i.;
-        quit;
-        %EDIT_MEANS_2(temp_adlb_&i._0, means_&i._0, AVAL);
-        data means_comp_&i._0;
-          do i=1 to 6;
-            output='-'; output;
-          end;
-        run;
-        %do j=1 %to &min_col.;
-          proc sql noprint;
-            %if &j.=&max_col. %then %do;
-              create table temp_adlb_&i._&j. as
-              select distinct SUBJID, max(AVAL) as AVAL, BASE
-              from temp_adlb_&i.
-              group by SUBJID;
-            %end;
-            %else %if &j.=&min_col. %then %do;
-              create table temp_adlb_&i._&j as
-              select distinct SUBJID, min(AVAL) as AVAL, BASE
-              from temp_adlb_&i.
-              group by SUBJID;
-            %end;
-            %else %do;
-              create table temp_adlb_&i._&j. as
-              select distinct SUBJID, max(AVAL) as AVAL, BASE
-              from temp_adlb_&i.
-              where AVISITN = &&avisit_&j.
-              group by SUBJID;
-            %end;
-              create table temp_adlb_comp_&i._&j. as
-              select SUBJID, (AVAL-BASE) as AVAL
-              from temp_adlb_&i._&j.;
-          quit;
-          %EDIT_MEANS_2(temp_adlb_&i._&j., means_&i._&j., AVAL);
-          %EDIT_MEANS_2(temp_adlb_comp_&i._&j., means_comp_&i._&j., AVAL);
-        %end;
-    %end;
-
-%mend EDIT_T14_3_25;
-%macro EDIT_MEANS_2(input_ds, output_ds, target_var);
-    %let output_var=output;
-    proc means data=&input_ds.  noprint;
-        var &target_var.;
-        output out=temp_means n=n mean=temp_mean stddev=temp_sd median=temp_median min=min max=max;
-    run;
-    data &output_ds.;
-        length &output_var. $200;
-        set temp_means;
-        &output_var.=n; output;
-        &output_var.=put(temp_mean, 8.2); output;
-        &output_var.=put(temp_sd, 8.3); output;
-        &output_var.=put(min, 8.1); output;
-        &output_var.=put(temp_median, 8.2); output;
-        &output_var.=put(max, 8.1); output;
-        keep &output_var.;
-    run;
-%mend EDIT_MEANS_2;
 %EDIT_T14_3_25();
-%macro SET_EXCEL_T14_3_25();
-    %local i j output_row output_col;
-    %do i=1 %to &test_cnt.;
-      %let output_row=%eval(7+(&i.-1)*14);
-      %do j=0 %to &min_col.;
-      %let output_col=%eval(4+&j.);
-        %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
-        %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
-      %end;
-    %end;
-%mend SET_EXCEL_T14_3_25;
 %OPEN_EXCEL(&template.);
 %SET_EXCEL_T14_3_25();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
 
-%put &min_col.;
