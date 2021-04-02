@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.25.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-3-31
+Date : 2021-4-2
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -95,11 +95,26 @@ options mprint mlogic symbolgen noquotelenmax;
         length &output_var. $200;
         set temp_means;
         &output_var.=n; output;
-        &output_var.=put(temp_mean, 8.2); output;
-        &output_var.=put(temp_sd, 8.3); output;
-        &output_var.=put(min, 8.1); output;
-        &output_var.=put(temp_median, 8.2); output;
-        &output_var.=put(max, 8.1); output;
+        &output_var.=put(round(temp_mean, 0.01), 8.2); output;
+        if temp_sd^=. then do;
+          &output_var.=put(round(temp_sd, 0.001), 8.3); output;
+        end;
+        else do;
+          &output_var.='-'; output;
+        end;
+        if min^='-0.0' then do; 
+          &output_var.=put(round(min, 0.1), 8.1); output;
+        end;
+        else do;
+          &output_var.='0.0'; output;
+        end;      
+        &output_var.=put(round(temp_median, 0.01), 8.2); output;
+        if max^='-0.0' then do; 
+          &output_var.=put(round(max, 0.1), 8.1); output;
+        end;
+        else do;
+          &output_var.='0.0'; output;
+        end;      
         keep &output_var.;
     run;
 %mend EDIT_MEANS_2;
