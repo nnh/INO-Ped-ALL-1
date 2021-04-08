@@ -1,8 +1,8 @@
 **************************************************************************
-Program Name : QC_INO-Ped-ALL-1_RES_T14.3.25.sas
+Program Name : QC_INO-Ped-ALL-1_RES_T14.3.26.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-2
+Date : 2021-4-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -30,8 +30,7 @@ options mprint mlogic symbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
-%macro EDIT_T14_3_25(input_ds);
-    %local i j; 
+%macro EDIT_T14_3_26(input_ds);
     proc sql noprint;
         create table avisit_list as
         select distinct AVISIT, AVISITN
@@ -39,59 +38,61 @@ options mprint mlogic symbolgen noquotelenmax;
         where (AVISITN ^= .) and ((mod(AVISITN, 100) ^= 0) or (AVISITN = 800))
         order by AVISITN;
     quit;
+    %local i j k temp_cnt; 
     proc sql noprint;
         select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
         select AVISITN, count(AVISITN) into: avisit_1-:avisit_99, :avisit_cnt from avisit_list;
     quit; 
-    %let max_col=%eval(&avisit_cnt.+1);
-    %let min_col=%eval(&avisit_cnt.+2);
     %do i=1 %to &test_cnt.;
         proc sql noprint;
             create table temp_&input_ds._&i. as
-            select *
+            select *, 
+                   case 
+                     when (PARAMCD = 'HEIGHT') or (PARAMCD = 'WEIGHT') then 1
+                     else ATPTN
+                   end as temp_ATPTN 
             from &input_ds.
             where PARAM = "&&test_&i.";
 
-            create table temp_&input_ds._&i._0 as
+            create table temp_&input_ds._&i._0_1 as
             select distinct SUBJID, BASE as AVAL
             from temp_&input_ds._&i.;
         quit;
-        %EDIT_MEANS_2(temp_&input_ds._&i._0, means_&i._0, AVAL);
-        data means_comp_&i._0;
+        %EDIT_MEANS_2(temp_&input_ds._&i._0_1, means_&i._0_1, AVAL);
+        data means_comp_&i._0_1;
           do i=1 to 6;
             output='-'; output;
           end;
         run;
-        %do j=1 %to &min_col.;
-          proc sql noprint;
-            %if &j.=&max_col. %then %do;
-              create table temp_&input_ds._&i._&j. as
-              select distinct SUBJID, max(AVAL) as AVAL, BASE
-              from temp_&input_ds._&i.
-              group by SUBJID;
+        %do j=1 %to &avisit_cnt.;
+          %do k=1 %to 3;
+            proc sql noprint;
+                create table temp_&input_ds._&i._&j._&k. as
+                select distinct SUBJID, max(AVAL) as AVAL, BASE
+                from temp_&input_ds._&i.
+                where (AVISITN = &&avisit_&j.) and (temp_ATPTN = &k.)
+                group by SUBJID;
+
+                create table temp_&input_ds._comp_&i._&j._&k. as
+                select SUBJID, (AVAL-BASE) as AVAL
+                from temp_&input_ds._&i._&j._&k.;
+              quit;
+            %EDIT_MEANS_2(temp_&input_ds._&i._&j._&k., means_&i._&j._&k., AVAL);
+            %EDIT_MEANS_2(temp_&input_ds._comp_&i._&j._&k., means_comp_&i._&j._&k., AVAL);
+            proc sql noprint;
+                select count(*) into: temp_cnt from means_&i._&j._&k.;
+            quit;
+            %if &temp_cnt. = 0 %then %do;
+                data means_&i._&j._&k. temp_&input_ds._comp_&i._&j._&k.;
+                    do i=1 to 6;
+                      output='-'; output;
+                    end;
+                run;
             %end;
-            %else %if &j.=&min_col. %then %do;
-              create table temp_&input_ds._&i._&j as
-              select distinct SUBJID, min(AVAL) as AVAL, BASE
-              from temp_&input_ds._&i.
-              group by SUBJID;
-            %end;
-            %else %do;
-              create table temp_&input_ds._&i._&j. as
-              select distinct SUBJID, max(AVAL) as AVAL, BASE
-              from temp_&input_ds._&i.
-              where AVISITN = &&avisit_&j.
-              group by SUBJID;
-            %end;
-              create table temp_&input_ds._comp_&i._&j. as
-              select SUBJID, (AVAL-BASE) as AVAL
-              from temp_&input_ds._&i._&j.;
-          quit;
-          %EDIT_MEANS_2(temp_&input_ds._&i._&j., means_&i._&j., AVAL);
-          %EDIT_MEANS_2(temp_&input_ds._comp_&i._&j., means_comp_&i._&j., AVAL);
         %end;
+      %end;
     %end;
-%mend EDIT_T14_3_25;
+%mend EDIT_T14_3_26;
 %macro EDIT_MEANS_2(input_ds, output_ds, target_var);
     %let output_var=output;
     proc means data=&input_ds.  noprint;
@@ -125,69 +126,55 @@ options mprint mlogic symbolgen noquotelenmax;
         keep &output_var.;
     run;
 %mend EDIT_MEANS_2;
-%macro SET_EXCEL_T14_3_25();
-    %local i j output_row output_col;
+%macro SET_EXCEL_T14_3_26();
+    %local i j k output_row output_col max_col;
     %do i=1 %to &test_cnt.;
       %let output_row=%eval(7+(&i.-1)*14);
-      %do j=0 %to &min_col.;
+      %do j=0 %to &avisit_cnt.;
       %let output_col=%eval(4+&j.);
-        %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
-        %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
+      %if (&j. ^= 0) and (&j. ^= &avisit_cnt.) %then %do;
+        %let max_col=3;
+      %end;
+      %else %do;
+        %let max_col=1;
+      %end;
+          %do k=1 %to %eval(&max_col.);        
+            %SET_EXCEL(means_&i._&j._&k., &output_row., &output_col., %str(output), &output_file_name.);
+            %SET_EXCEL(means_comp_&i._&j._&k., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
+            %let output_col=%eval(&output_col.+1);
+          %end;
       %end;
     %end;
-%mend SET_EXCEL_T14_3_25;
+%mend SET_EXCEL_T14_3_26;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
 %global test_cnt avisit_cnt max_col min_col;
-%let output_file_name=T14.3.25;
+%let output_file_name=T14.3.26;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
 %let target_flg=SAFFL;
 libname libinput "&inputpath." ACCESS=READONLY;
-%let input_ds=adlb;
+%let input_ds=advs;
 data &input_ds.;
     set libinput.&input_ds.;
     where &target_flg.='Y';
 run;
 data test_param_list;
     length PARAM $200;
-    PARAM = 'Leukocytes (10^6/L)'; output;
-    PARAM = 'Neutrophils/Leukocytes (%)'; output;
-    PARAM = 'Eosinophils/Leukocytes (%)'; output;
-    PARAM = 'Basophils/Leukocytes (%)'; output;
-    PARAM = 'Monocytes/Leukocytes (%)'; output;
-    PARAM = 'Lymphocytes/Leukocytes (%)'; output;
-    PARAM = 'Blasts/Leukocytes (%)'; output;
-    PARAM = 'Hemoglobin (g/dL)'; output;
-    PARAM = 'Platelets (10^10/L)'; output;
-    PARAM = 'Sodium (mEq/L)'; output;
-    PARAM = 'Potassium (mEq/L)'; output;
-    PARAM = 'Magnesium (mg/dL)'; output;
-    PARAM = 'Calcium (mg/dL)'; output;
-    PARAM = 'Creatinine (mg/dL)'; output;
-    PARAM = 'Albumin (g/dL)'; output;
-    PARAM = 'Alanine Aminotransferase (IU/L)'; output;
-    PARAM = 'Aspartate Aminotransferase (IU/L)'; output;
-    PARAM = 'Glucose (mg/dL)'; output;
-    PARAM = 'Phosphate (mg/dL)'; output;
-    PARAM = 'Bilirubin (mg/dL)'; output;
-    PARAM = 'Direct Bilirubin (mg/dL)'; output;
-    PARAM = 'Urea Nitrogen (mg/dL)'; output;
-    PARAM = 'Uric Acid Crystals (mg/dL)'; output;
-    PARAM = 'Alkaline Phosphatase (IU/L)'; output;
-    PARAM = 'Lactate Dehydrogenase (IU/L)'; output;
-    PARAM = 'Gamma Glutamyl Transferase (IU/L)'; output;
-    PARAM = 'Protein (g/dL)'; output;
-    PARAM = 'Amylase (IU/L)'; output;
-    PARAM = 'Lipase (IU/L)'; output;
+    PARAM = 'Height (cm)'; output;
+    PARAM = 'Weight (kg)'; output;
+    PARAM = 'Temperature (C)'; output;
+    PARAM = 'Diastolic Blood Pressure (mmHg)'; output;
+    PARAM = 'Systolic Blood Pressure (mmHg)'; output;
+    PARAM = 'Pulse Rate (beats/min)'; output;
 run;
-%EDIT_T14_3_25(&input_ds.);
+%EDIT_T14_3_26(advs);
 %OPEN_EXCEL(&template.);
-%SET_EXCEL_T14_3_25();
+%SET_EXCEL_T14_3_26();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
 
