@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.26.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-8
+Date : 2021-4-9
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -74,7 +74,7 @@ options mprint mlogic symbolgen noquotelenmax;
             select distinct SUBJID, BASE as AVAL
             from temp_&input_ds._&i.;
       quit;
-      %if "&&test_&i." = "&temp." %then %do;
+      %if ("&&test_&i." = "&temp.") or ("&&test_&i." = "&weight.") %then %do;
         %EDIT_ROUND_TABLE();
       %end;
       %else %do;
@@ -98,7 +98,16 @@ options mprint mlogic symbolgen noquotelenmax;
             select SUBJID, (AVAL-BASE) as AVAL
             from temp_&input_ds._&i._&j.;
         quit;
+        %if ("&&test_&i." = "&temp.") or ("&&test_&i." = "&weight.") %then %do;
+          %EDIT_ROUND_TABLE();
+        %end;
+        %else %do;
+          %EDIT_ROUND_TABLE(mean=0.1, sd=0.01, min=., median=0.1, max=.);
+        %end;
         %EDIT_MEANS_2(temp_&input_ds._&i._&j., means_&i._&j., AVAL);
+        %if "&&test_&i." = "&weight." %then %do;
+          %EDIT_ROUND_TABLE(mean=0.1, sd=0.01, min=0, median=0.1, max=0);
+        %end;
         %EDIT_MEANS_2(temp_&input_ds._comp_&i._&j., means_comp_&i._&j., AVAL);
         proc sql noprint;
             select count(*) into: temp_cnt from means_&i._&j.;
@@ -138,6 +147,7 @@ options mprint mlogic symbolgen noquotelenmax;
 libname libinput "&inputpath." ACCESS=READONLY;
 %let input_ds=advs;
 %let temp=Temperature (C);
+%let weight=Weight (kg);
 data &input_ds.;
     set libinput.&input_ds.;
     where &target_flg.='Y';
@@ -145,7 +155,7 @@ run;
 data test_param_list;
     length PARAM $200;
     PARAM = 'Height (cm)'; output;
-    PARAM = 'Weight (kg)'; output;
+    PARAM = "&weight."; output;
     PARAM = "&temp."; output;
     PARAM = 'Diastolic Blood Pressure (mmHg)'; output;
     PARAM = 'Systolic Blood Pressure (mmHg)'; output;
@@ -156,4 +166,3 @@ run;
 %SET_EXCEL_T14_3_26();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
-

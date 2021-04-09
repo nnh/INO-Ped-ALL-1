@@ -627,9 +627,9 @@ SAS version : 9.4
     proc sql noprint;
         select round, put into: round_mean, :put_mean from round_table where title = 'mean';
         select round, put into: round_sd, :put_sd from round_table where title = 'sd';
-        select round, put into: round_min, :put_min from round_table where title = 'min';
+        select round, put into: round_min trimmed, :put_min from round_table where title = 'min';
         select round, put into: round_median, :put_median from round_table where title = 'median';
-        select round, put into: round_max, :put_max from round_table where title = 'max';
+        select round, put into: round_max trimmed, :put_max from round_table where title = 'max';
     quit;
     proc means data=&input_ds.  noprint;
         var &target_var.;
@@ -653,6 +653,9 @@ SAS version : 9.4
         if missing(&round_min.) then do;
           &output_var.=min; output;
         end;
+        else if &round_min.=0 then do;
+          &output_var.=round(min); output;
+        end;
         else do;
           if min^='-0.0' then do;
             &output_var.=put(round(min, &round_min.), &put_min.); output;
@@ -666,6 +669,9 @@ SAS version : 9.4
         * MAX;
         if missing(&round_max.) then do;
           &output_var.=max; output;
+        end;
+        else if &round_max.=0 then do;
+          &output_var.=round(max); output;
         end;
         else do;
           if max^='-0.0' then do;
