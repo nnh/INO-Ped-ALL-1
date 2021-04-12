@@ -2,11 +2,11 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.25.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-2
+Date : 2021-4-9
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
-options mprint mlogic symbolgen noquotelenmax;
+options nomprint mlogic symbolgen noquotelenmax;
 %macro GET_THISFILE_FULLPATH;
     %local _fullpath _path;
     %let _fullpath=;
@@ -32,7 +32,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %mend GET_DIRECTORY_PATH;
 %macro EDIT_T14_3_25(input_ds);
     %local i j; 
-	%EDIT_ROUND_TABLE();
+  %EDIT_ROUND_TABLE();
     proc sql noprint;
         create table avisit_list as
         select distinct AVISIT, AVISITN
@@ -99,6 +99,7 @@ options mprint mlogic symbolgen noquotelenmax;
       %let output_row=%eval(7+(&i.-1)*14);
       %do j=0 %to &min_col.;
       %let output_col=%eval(4+&j.);
+        %SET_EXCEL(output_test, &output_row., 1, %str(PARAM), &output_file_name.);
         %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
         %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
       %end;
@@ -152,6 +153,17 @@ data test_param_list;
     PARAM = 'Protein (g/dL)'; output;
     PARAM = 'Amylase (IU/L)'; output;
     PARAM = 'Lipase (IU/L)'; output;
+run;
+%macro tit(no,name);
+  data tit_&no.;
+    length PARAM $200.;
+      PARAM=strip(&name.);output;
+      PARAM=""; output;output;output;output;output;output;output;output;output;output;output;output;output;
+  run ;
+%mend ;
+%tit(21,%str('Direct Bilirubin (mg/dL)	'));
+data output_test;
+set tit_21;
 run;
 %EDIT_T14_3_25(&input_ds.);
 %OPEN_EXCEL(&template.);
