@@ -2,11 +2,11 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.25.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-9
+Date : 2021-4-12
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
-options nomprint mlogic symbolgen noquotelenmax;
+options nomprint nomlogic nosymbolgen noquotelenmax;
 %macro GET_THISFILE_FULLPATH;
     %local _fullpath _path;
     %let _fullpath=;
@@ -56,6 +56,11 @@ options nomprint mlogic symbolgen noquotelenmax;
             create table temp_&input_ds._&i._0 as
             select distinct SUBJID, BASE as AVAL
             from temp_&input_ds._&i.;
+
+            create table output_test_&i. as
+            select PARAM
+            from output_test
+            where temp_param = "&&test_&i.";
         quit;
         %EDIT_MEANS_2(temp_&input_ds._&i._0, means_&i._0, AVAL);
         data means_comp_&i._0;
@@ -93,13 +98,33 @@ options nomprint mlogic symbolgen noquotelenmax;
         %end;
     %end;
 %mend EDIT_T14_3_25;
+%macro SET_EXCEL_2(output_file_name, output_start_row, output_start_col, output_var, sheet_name);
+    %local colcount rowcount output_end_col output_end_row;
+    proc contents data=&output_file_name.
+        out=_tmpxx_ noprint;
+    run;
+    %let colcount=0;
+    data _NULL_;
+        set &output_file_name. nobs=rowcnt;
+        call symputx("rowcount", rowcnt);
+    run;
+    %let output_end_col=%eval(&output_start_col.+&colcount);
+    %let output_end_row=%eval(&output_start_row.+&rowcount);
+    filename cmdexcel dde "excel|&sheet_name.!R&output_start_row.C&output_start_col.:R&output_end_row.C&output_end_col.";
+    data _NULL_;
+        set &output_file_name.;
+        file cmdexcel dlm='09'X notab dsd;
+        put &output_var.;
+    run;
+    filename cmdexcel clear;    
+%mend SET_EXCEL_2;
 %macro SET_EXCEL_T14_3_25();
     %local i j output_row output_col;
     %do i=1 %to &test_cnt.;
       %let output_row=%eval(7+(&i.-1)*14);
+      %SET_EXCEL_2(output_test_&i., &output_row., 2, %str(PARAM), &output_file_name.);
       %do j=0 %to &min_col.;
       %let output_col=%eval(4+&j.);
-        %SET_EXCEL(output_test, &output_row., 1, %str(PARAM), &output_file_name.);
         %SET_EXCEL(means_&i._&j., &output_row., &output_col., %str(output), &output_file_name.);
         %SET_EXCEL(means_comp_&i._&j., %eval(&output_row.+8), &output_col., %str(output), &output_file_name.);
       %end;
@@ -154,20 +179,21 @@ data test_param_list;
     PARAM = 'Amylase (IU/L)'; output;
     PARAM = 'Lipase (IU/L)'; output;
 run;
-%macro tit(no,name);
-  data tit_&no.;
-    length PARAM $200.;
-      PARAM=strip(&name.);output;
-      PARAM=""; output;output;output;output;output;output;output;output;output;output;output;output;output;
-  run ;
-%mend ;
-%tit(21,%str('Direct Bilirubin (mg/dL)	'));
 data output_test;
-set tit_21;
+    length PARAM $200.;
+    set test_param_list(rename=(PARAM=temp_param));
+    if (temp_param='Direct Bilirubin (mg/dL)') or 
+       (temp_param='Uric Acid Crystals (mg/dL)') or 
+       (temp_param='Lactate Dehydrogenase (IU/L)') or 
+       (temp_param='Amylase (IU/L)') then do;
+      PARAM=cats(temp_param, '09'X);
+    end;
+    else do;
+      PARAM=temp_param;
+    end;
 run;
 %EDIT_T14_3_25(&input_ds.);
 %OPEN_EXCEL(&template.);
 %SET_EXCEL_T14_3_25();
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
-
