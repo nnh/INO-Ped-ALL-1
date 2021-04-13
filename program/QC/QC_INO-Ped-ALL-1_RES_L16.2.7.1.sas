@@ -1,8 +1,14 @@
+DATA _NULL_ ;
+     CALL SYMPUT( "_YYMM_" , COMPRESS( PUT( DATE() , YYMMDDN8. ) ) ) ;
+     CALL SYMPUT( "_TIME_" , COMPRESS( PUT( TIME() , TIME5. ) , " :" ) ) ;
+RUN ;
+proc printto log="\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\log\QC\result\DATA_L16.2.7.1_LOG_&_YYMM_._&_TIME_..txt" new;
+run;
 **************************************************************************
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.7.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-12
+Date : 2021-4-13
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -30,13 +36,84 @@ options nomprint nomlogic nosymbolgen noquotelenmax;
     %let _path=&temp_path.;
     &_path.
 %mend GET_DIRECTORY_PATH;
-%macro SET_EXCEL_L16_2_7_1();
-    %local i j k output_row output_col;
-    %let output_row=5;
-    %do i=1 %to 1;
+%macro EDIT_VAR(input_ds, var, varname);
+    data &input_ds._&var.;
+        set &input_ds.(rename=(&varname.=temp_&varname.));
+        &varname.=&var.;
+        drop temp_&varname.;
+    run;
+%mend EDIT_VAR;
+%macro EDIT_AGE(input_ds, output_ds);
+    %do i=1 %to 20;
+      %EDIT_VAR(&input_ds., &i., age);
+    %end;
+    data &output_ds.;
+        set &input_ds._1-&input_ds._20;
+    run;
+%mend EDIT_AGE;
+%macro EDIT_L16_2_7_1(input_ds);
+    %local i j k;
+    proc sql noprint;
+        select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
+        select SUBJID, count(SUBJID) into:subjid_1-:subjid_99, :subjid_cnt from subjid_list;
+    quit; 
+    %do i=1 %to &subjid_cnt.;
+      proc sql noprint;
+          create table id_sex_&i. as
+          select distinct SUBJID, SEX
+          from &input_ds.
+          where SUBJID = "&&subjid_&i.";
+
+          create table temp_&input_ds._&i. as
+          select SUBJID, SEX, AVISIT, AVISITN, PARAM, PARAMCD, AVAL, AVALC, LOW, HIGH, UNIT, FLG
+          from &input_ds.
+          where SUBJID = "&&subjid_&i."
+          order by PARAMCD, AVISITN;
+
+          create table temp_avisit_&i. as
+          select distinct AVISIT, AVISITN
+          from temp_&input_ds._&i.
+          where AVISITN ^= .
+          order by AVISITN;
+
+          select AVISIT, count(*) into:avisit_1-:avisit_99, :avisit_cnt from temp_avisit_&i.;
+      quit;
       %do j=1 %to &avisit_cnt.;
+        data temp_&input_ds._&i._&j.;
+            set temp_&input_ds._&i.;
+            where AVISIT="&&avisit_&j.";
+        run;
+        %do k=1 %to &test_cnt.;
+          data temp_&input_ds._&i._&j._&k.;
+              set temp_&input_ds._&i._&j.;
+              where PARAM="&&test_&k.";
+              keep AVAL FLG;
+          run;
+          proc sql noprint;
+              select count(*) into:temp_row_cnt from temp_&input_ds._&i._&j._&k.;
+              %if &temp_row_cnt. = 0 %then %do;
+                data temp_&input_ds._&i._&j._&k.;
+                  AVAL=.;
+                  FLG='';
+                run;
+              %end;
+          quit;
+        %end;
+      %end;
+    %end;
+%mend EDIT_L16_2_7_1;
+%macro SET_EXCEL_L16_2_7_1();
+    %local i j k output_row output_col temp_avisit_cnt;
+    %let output_row=5;
+    %do i=1 %to &subjid_cnt.;
+      %SET_EXCEL(id_sex_&i., %eval(&output_row.+1), 2, %str(SUBJID SEX), &output_file_name.); 
+      %SET_EXCEL(temp_avisit_&i., %eval(&output_row.+1), 4, %str(AVISIT), &output_file_name.); 
+      proc sql noprint;
+          select count(*) into: temp_avisit_cnt from temp_avisit_&i.;
+      quit;
+      %do j=1 %to &temp_avisit_cnt.;
         %let output_row=%eval(&output_row.+1);
-        %do k=1 %to 2;
+        %do k=1 %to &test_cnt.;
           %let output_col=%eval(5+(&k.-1)*2);
             %SET_EXCEL(temp_adlb_normal_range_&i._&j._&k., &output_row., &output_col., %str(AVAL FLG), &output_file_name.);
         %end;
@@ -75,6 +152,9 @@ data raw_site_range;
 run;
 filename cmdexcel clear;
 %CLOSE_EXSEL_NOSAVE;
+data _NULL_;
+    rc=sleep(5);
+run;
 %OPEN_EXCEL(&normal_range.);
 filename cmdexcel dde "excel|[&normal_range_filename.]&normal_range_sheetname.!R2C1:R9999C13";
 data raw_normal_range;
@@ -94,7 +174,7 @@ proc sql noprint;
     from raw_normal_range a, site_list b;
 
     create table site_range as
-    select var6 as PARAMCD, var5 as PARAM, var3 as SEX, input(var4, best12.) as AGE, '' as UNIT, input(var7, best12.) as LOW, input(var8, best12.) as HIGH, input(var1, best12.) as SITEID, var2 as SITENM
+    select var6 as PARAMCD, var5 as PARAM, var3 as SEX, . as AGE, '' as UNIT, input(var7, best12.) as LOW, input(var8, best12.) as HIGH, input(var1, best12.) as SITEID, var2 as SITENM
     from raw_site_range;
 
     create table temp_test_range as
@@ -133,11 +213,32 @@ proc sql noprint;
     select * from temp_test_range_2
     order by PARAMCD, SITEID, SEX, AGE; 
 quit;
-data temp_test_range;
-    set temp_test_range_3(rename=(LOW=temp_low HIGH=temp_high));
+data temp_test_range_4 temp_test_range_5;
+    set temp_test_range_3;
+    if AGE=. then do;
+      output temp_test_range_4;
+    end;
+    else do;
+      output temp_test_range_5;
+    end;
+run;
+%EDIT_AGE(temp_test_range_4, temp_test_range_6);
+proc sql noprint;
+    create table temp_test_range_7 as
+    select * from temp_test_range_5
+    outer union corr
+    select * from temp_test_range_6
+    order by PARAMCD, SITEID, SEX, AGE; 
+quit;
+data test_range;
+    set temp_test_range_7(rename=(LOW=temp_low HIGH=temp_high));
     if PARAMCD='WBC' then do;
       LOW=temp_low*1000;
       HIGH=temp_high*1000;
+    end;
+    else if PARAMCD='BLASTLE' then do;
+      LOW=0;
+      HIGH=100;
     end;
     else do;
       LOW=temp_low;
@@ -183,6 +284,12 @@ proc sql noprint;
     order by SUBJID;
 quit;
 proc sql noprint;
+    create table target_adlb as
+    select * 
+    from adlb
+    where PARAM in (select PARAM from test_param_list);
+quit;
+proc sql noprint;
     create table adlb_normal_range as
     select a.*, b.LOW, b.HIGH, b.UNIT, 
            case
@@ -190,50 +297,12 @@ proc sql noprint;
            when b.HIGH < a.AVAL then 'H'
            else ''
            end as FLG
-    from adlb a left join test_range b on (a.PARAMCD = b.PARAMCD) and (a.AGE = b.AGE) and (a.SEX = b.SEX) and (a.SITEID = b.SITEID);
+    from target_adlb a left join test_range b on (a.PARAMCD = b.PARAMCD) and (a.AGE = b.AGE) and (a.SEX = b.SEX) and (a.SITEID = b.SITEID);
 quit;
-%macro EDIT_L16_2_7_1(input_ds);
-    %local i j k;
-    proc sql noprint;
-        select PARAM, count(PARAM) into: test_1-:test_99, :test_cnt from test_param_list;
-        select SUBJID, count(SUBJID) into:subjid_1-:subjid_99, :subjid_cnt from subjid_list;
-    quit; 
-    %do i=1 %to 1;
-      proc sql noprint;
-          create table temp_&input_ds._&i. as
-          select SUBJID, SEX, AVISIT, AVISITN, PARAM, PARAMCD, AVAL, AVALC, LOW, HIGH, UNIT, FLG
-          from &input_ds.
-          where SUBJID = "&&subjid_&i."
-          order by PARAMCD, AVISITN;
-
-          create table temp_avisit_&i. as
-          select distinct AVISIT, AVISITN
-          from temp_&input_ds._&i.
-          where AVISITN ^= .
-          order by AVISITN;
-
-          select AVISIT, count(*) into:avisit_1-:avisit_99, :avisit_cnt from temp_avisit_&i.;
-      quit;
-      %do j=1 %to &avisit_cnt.;
-        data temp_&input_ds._&i._&j.;
-            set temp_&input_ds._&i.;
-            where AVISIT="&&avisit_&j.";
-        run;
-        %do k=1 %to 2;
-          data temp_&input_ds._&i._&j._&k.;
-              set temp_&input_ds._&i._&j.;
-              where PARAM="&&test_&k.";
-              keep AVAL FLG;
-          run;
-        %end;
-      %end;
-    %end;
-%mend EDIT_L16_2_7_1;
-
-
-
 %EDIT_L16_2_7_1(adlb_normal_range);
 %OPEN_EXCEL(&template.);
+%CLEAR_EXCEL(&output_file_name., 6);
 %SET_EXCEL_L16_2_7_1();
 %OUTPUT_EXCEL(&output.);
-%SDTM_FIN(&output_file_name.);
+proc printto;
+run;
