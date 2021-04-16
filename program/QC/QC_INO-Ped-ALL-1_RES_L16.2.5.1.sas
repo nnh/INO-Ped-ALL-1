@@ -98,28 +98,48 @@ options nomprint nomlogic nosymbolgen noquotelenmax;
 %let target_flg=.;
 libname libinput "&inputpath." ACCESS=READONLY;
 %let input_ds=adrs;
+%let input_ds2=adec;
 data &input_ds.;
     set libinput.&input_ds.;
+run;
+data &input_ds2.;
+    set libinput.&input_ds2.;
+    where PARAMCD='DOS' and mod(AVISITN, 100) = 1;
+    temp_AVISITN=AVISITN-1+100;
+run;
+proc sql noprint;
+    create table temp_&input_ds._0 as
+    select a.*, b.ASTDT, (a.ADT - b.ASTDT + 1) as CYCLEDAY
+    from &input_ds. a left join &input_ds2. b on (a.SUBJID = b.SUBJID) and (a.AVISITN = b.temp_AVISITN); 
+quit;
+data temp_&input_ds.;
+    set temp_&input_ds._0;
+    if AVISITN^=. then do; 
+      cycle=catx(' ', scan(AVISIT, 3, ' '), cats('DAY', CYCLEDAY), cats('(', ADY, ')'));
+    end;
+    else do;
+      cycle='';
+    end;
 run;
 proc sql noprint;
     create table dlt as
     select SUBJID, AVALC as DLT
-    from &input_ds.
+    from temp_&input_ds.
     where PARAMCD = 'DLT'
     order by SUBJID, AVISITN;
     create table mrd as
-    select SUBJID, ADT as MRD_DT, AVISITN, AVALC as MRD, catx(' ', AVISIT, cats('(', ADY, ')')) as MRD_DAY
-    from &input_ds.
+    select SUBJID, ADT as MRD_DT, AVISITN, AVALC as MRD, cycle as MRD_DAY
+    from temp_&input_ds.
     where PARAMCD = 'MRD'
     order by SUBJID, AVISITN;
     create table ovrlresp as
-    select SUBJID, ADT as OVRLRESP_DT, AVISITN, AVALC as OVRLRESP, catx(' ', AVISIT, cats('(', ADY, ')')) as OVRLRESP_DAY
-    from &input_ds.
+    select SUBJID, ADT as OVRLRESP_DT, AVISITN, AVALC as OVRLRESP, cycle as OVRLRESP_DAY
+    from temp_&input_ds.
     where PARAMCD = 'OVRLRESP'
     order by SUBJID, AVISITN;
     create table bestresp as
     select SUBJID, ADT, AVISITN, AVISIT, ADY, AVALC as BESTRESP
-    from &input_ds.
+    from temp_&input_ds.
     where PARAMCD = 'BESTRESP'
     order by SUBJID, AVISITN;
 quit;
