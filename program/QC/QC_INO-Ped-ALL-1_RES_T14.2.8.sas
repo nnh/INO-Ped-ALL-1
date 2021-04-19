@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.2.8.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-16
+Date : 2021-4-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -50,18 +50,13 @@ proc sql noprint;
     create table adpr as
     select SUBJID, ASTDT
     from libinput.adpr
-    where (&target_flg.='Y') and (PRCAT = 'PRIOR THERAPY' or PRCAT = 'COMBINATION THERAPY')
+    where (&target_flg.='Y') and (PRTRT = 'BMT' or PRTRT = 'PBSCT' or PRTRT = 'CBSCT' or PRTRT = 'OTHER')
     order by SUBJID, ASTDT;
 quit;
-data temp_adpr_1;
-    set adpr;
-    by SUBJID;
-    if first.SUBJID then output;
-run;
 proc sql noprint;
     create table temp_adtte_1 as
-    select a.*, (a.ADT - b.ASTDT + 1) as temp_AVAL
-    from adtte a left join temp_adpr_1 b on a.SUBJID = b.SUBJID;
+    select a.Cell, a.CNSR, (a.ADT - b.ASTDT + 1) as AVAL
+    from adtte a left join adpr b on a.SUBJID = b.SUBJID;
 quit;
 data dmy;
     AVAL=100;
@@ -78,7 +73,7 @@ data dmy;
     output;
 run;
 data temp_adtte;
-    set adtte
+    set temp_adtte_1
         dmy;
 run;
 proc lifetest data=temp_adtte(where=(Cell=1)) atrisk plots=s(atrisk=0 to 270 by 30 cl); 
