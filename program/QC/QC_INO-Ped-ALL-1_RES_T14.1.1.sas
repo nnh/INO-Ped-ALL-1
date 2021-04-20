@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.1.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-2-24
+Date : 2021-4-20
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -39,6 +39,14 @@ options mprint mlogic symbolgen noquotelenmax;
     %let seq=%eval(&seq.+1);
     %let output_row=%eval(&output_row.+&row_count.); 
 %mend SET_EXCEL_BY_SEQ;
+%macro EDIT_N_PER_ADLB(target_var);
+    %let seq=%eval(&seq.+1);
+    data &target_var.;
+        set adlb;
+        where PARAMCD="&target_var." and AVISITN=100;
+    run;
+    %EDIT_N_PER_2(&target_var., output_&seq., AVALC, %str('Y, N'), ',', 0);
+%mend EDIT_N_PER_ADLB;
 %global seq output_row N;
 %let thisfile=%GET_THISFILE_FULLPATH;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
@@ -53,6 +61,10 @@ options mprint mlogic symbolgen noquotelenmax;
 libname libinput "&inputpath." ACCESS=READONLY;
 data adsl;
     set libinput.adsl;
+    where &target_flg.='Y';
+run;
+data adlb;
+    set libinput.adlb;
     where &target_flg.='Y';
 run;
 data admh;
@@ -165,6 +177,10 @@ run;
 %EDIT_MEANS(adsl, output_&seq., FRDUR);
 %let seq=%eval(&seq.+1);
 %EDIT_N_PER_2(adsl, output_&seq., FRDURGR1, %str('<12 months, >=12 months'), ',', 0);
+%EDIT_N_PER_ADLB(T_9_22_);
+%EDIT_N_PER_ADLB(T_4_11_);
+%EDIT_N_PER_ADLB(HPODIP);
+%EDIT_N_PER_ADLB(HPERDIP);
 %OPEN_EXCEL(&template.);
 %let seq=1;
 %let output_row=6;
@@ -193,6 +209,10 @@ run;
 %SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
 %SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
 %SET_EXCEL_BY_SEQ(output_&seq., %str(COL1));
+%SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
+%SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
+%SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
+%SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
 %SET_EXCEL_BY_SEQ(output_&seq., %str(N PER));
 %OUTPUT_EXCEL(&output.);
 %SDTM_FIN(&output_file_name.);
