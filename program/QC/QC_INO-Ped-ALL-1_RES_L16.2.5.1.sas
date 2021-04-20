@@ -8,7 +8,7 @@ run;
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.5.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-15
+Date : 2021-4-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -95,12 +95,13 @@ options nomprint nomlogic nosymbolgen noquotelenmax;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;
 %let template=&templatepath.\&templatename.;
 %let output=&outputpath.\&outputname.;
-%let target_flg=.;
+%let target_flg=PPSFL;
 libname libinput "&inputpath." ACCESS=READONLY;
 %let input_ds=adrs;
 %let input_ds2=adec;
 data &input_ds.;
     set libinput.&input_ds.;
+    where &target_flg.='Y';
 run;
 data &input_ds2.;
     set libinput.&input_ds2.;

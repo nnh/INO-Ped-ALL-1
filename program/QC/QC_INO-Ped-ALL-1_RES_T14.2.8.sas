@@ -50,7 +50,7 @@ proc sql noprint;
     create table adpr as
     select SUBJID, ASTDT
     from libinput.adpr
-    where (&target_flg.='Y') and (PRTRT = 'BMT' or PRTRT = 'PBSCT' or PRTRT = 'CBSCT' or PRTRT = 'OTHER')
+    where (&target_flg. = 'Y') and (PRTRT = 'BMT' or PRTRT = 'PBSCT' or PRTRT = 'CBSCT' or PRTRT = 'OTHER')
     order by SUBJID, ASTDT;
 quit;
 proc sql noprint;

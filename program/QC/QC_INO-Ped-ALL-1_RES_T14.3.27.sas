@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.27.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-14
+Date : 2021-4-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -132,7 +132,7 @@ options mprint mlogic symbolgen noquotelenmax;
 %let projectpath=%GET_DIRECTORY_PATH(&thisfile., 3);
 %inc "&projectpath.\program\QC\macro\QC_INO-Ped-ALL-1_RES_LIBNAME.sas";
 * Main processing start;
-%global test_cnt avisit_cnt atptn_target temp;
+%global test_cnt avisit_cnt;
 %let output_file_name=T14.3.27;
 %let templatename=&template_name_head.&output_file_name.&template_name_foot.;
 %let outputname=&template_name_head.&output_file_name.&output_name_foot.;

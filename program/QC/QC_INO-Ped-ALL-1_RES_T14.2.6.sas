@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.2.6.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-3-25
+Date : 2021-4-19
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -45,7 +45,7 @@ proc sql noprint;
     create table adpr as
     select * 
     from libinput.adpr
-    where (&target_flg. = 'Y') and ((PRTRT = 'BMT') or (PRTRT = 'PBSCT') or (PRTRT = 'CBSCT'));
+    where (&target_flg. = 'Y') and (PRTRT = 'BMT' or PRTRT = 'PBSCT' or PRTRT = 'CBSCT' or PRTRT = 'OTHER');
 
     create table adtte as
     select * 
