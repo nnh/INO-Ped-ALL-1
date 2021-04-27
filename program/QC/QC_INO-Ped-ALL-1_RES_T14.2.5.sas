@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.2.5.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-3-25
+Date : 2021-4-21
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -46,8 +46,12 @@ proc sql noprint;
     select * from libinput.adtte
     where (&target_flg. = 'Y') and (PARAMCD = 'OS') and (AHSCT = 'Y');
 quit;
+ods output SurvivalPlot=Survivalplot;
 proc lifetest data=adtte atrisk plots=s(atrisk=0 to 270 by 30 cl); 
     time AVAL * CNSR(1);
+run;
+ods output close;
+proc print data=Survivalplot;
 run;
 %OUTPUT_FILE(&output_file_name.);
 %SDTM_FIN(&output_file_name.);

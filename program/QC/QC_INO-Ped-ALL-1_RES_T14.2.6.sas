@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.2.6.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-19
+Date : 2021-4-21
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -52,13 +52,16 @@ proc sql noprint;
     from libinput.adtte
     where (&target_flg. = 'Y') and (PARAMCD = 'OS') and (AHSCT = 'Y');
 
-    create table temp_adtte_1 as 
-    select a.*
-    from adtte a, adpr b
-    where a.SUBJID = b.SUBJID;
+    create table temp_adtte_1 as
+    select a.CNSR, (a.ADT - b.ASTDT + 1) as AVAL
+    from adtte a left join adpr b on a.SUBJID = b.SUBJID;
 quit;
+ods output SurvivalPlot=Survivalplot;
 proc lifetest data=temp_adtte_1 atrisk plots=s(atrisk=0 to 270 by 30 cl); 
     time AVAL * CNSR(1);
+run;
+ods output close;
+proc print data=Survivalplot;
 run;
 %OUTPUT_FILE(&output_file_name.);
 %SDTM_FIN(&output_file_name.);
