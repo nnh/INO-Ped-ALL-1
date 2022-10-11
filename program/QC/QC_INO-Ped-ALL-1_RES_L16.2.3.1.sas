@@ -2,13 +2,13 @@ DATA _NULL_ ;
      CALL SYMPUT( "_YYMM_" , COMPRESS( PUT( DATE() , YYMMDDN8. ) ) ) ;
      CALL SYMPUT( "_TIME_" , COMPRESS( PUT( TIME() , TIME5. ) , " :" ) ) ;
 RUN ;
-proc printto log="\\aronas\Stat\Trials\Chiken\INO-Ped-ALL-1\log\QC\result\DATA_L16.2.3.1_LOG_&_YYMM_._&_TIME_..txt" new;
+proc printto log="%sysget(UserProfile)\Box\Stat\Trials\Chiken\INO-Ped-ALL-1\log\QC\result\DATA_L16.2.3.1_LOG_&_YYMM_._&_TIME_..txt" new;
 run;
 **************************************************************************
 Program Name : QC_INO-Ped-ALL-1_RES_L16.2.3.1.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-15
+Date : 2022-10-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -91,8 +91,14 @@ options nomprint nomlogic nosymbolgen noquotelenmax;
 libname libinput "&inputpath." ACCESS=READONLY;
 %let input_ds=adsl;
 %let input_ds2=admh;
-data &input_ds.;
+data wk&input_ds.;
     set libinput.&input_ds.;
+    rename PBLST=wk_PBLST;
+run;
+data &input_ds.;
+    set wk&input_ds.;
+    PBLST=wk_PBLST*0.01*WBC;
+    drop wk_PBLST;
 run;
 data &input_ds2.;
     set libinput.&input_ds2.;
