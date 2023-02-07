@@ -96,6 +96,26 @@ data  adsl;
     when("N") RADN=2;
     otherwise;
   end ;
+  /*add*/
+  PBLSTN=PBLST*0.01*WBC;
+
+  select;
+    when (PBLSTN>10000) PBLSGR1=">10,000";
+    when (PBLSTN>5000) PBLSGR1=">5,000- 10,000";
+    when (PBLSTN>1000) PBLSGR1=">1,000- 5,000";
+    when (PBLSTN>0) PBLSGR1=">0- 1,000";
+    when (PBLSTN=0) PBLSGR1="0";
+    otherwise ;
+  end ;
+  select(PBLSGR1);
+    when("0") PBLSGR1N=1;
+    when(">0- 1,000") PBLSGR1N=2;
+    when(">1,000- 5,000") PBLSGR1N=3;
+    when(">5,000- 10,000") PBLSGR1N=4;
+    when(">10,000") PBLSGR1N=5;
+    otherwise ;
+  end;
+
 run ;
 
 data  admh1;
@@ -277,7 +297,7 @@ run ;
 %FREQ(18 ,CD22GR1N , %STR(1 TO 3) , , FLG=0);
 %MEAN(19 ,LVEF     ,0.01,8.2,0.001,8.3,0.1,8.1) ;
 %MEAN(20 ,WBC      ,0.1,8.1,0.01,8.2,1.,8.) ;
-%MEAN(21 ,PBLST    ,0.01,8.2,0.001,8.3,0.1,8.1) ;
+%MEAN(21 ,PBLSTN   ,0.01,8.2,0.001,8.3,0.1,8.1) ;
 %FREQ(22 ,PBLSGR1N , %STR(1 TO 5) , , FLG=0);
 %FREQ(23 ,BLSGR1N  , %STR(1 TO 2) , , FLG=0);
 %MEAN(24 ,FRDUR    ,0.1,8.1,0.01,8.2,1.,8.) ;

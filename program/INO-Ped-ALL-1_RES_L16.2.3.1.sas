@@ -97,6 +97,12 @@ data  wk00;
   by USUBJID SEQ;
 run ;
 
+/*fix*/
+data  wk00;
+  set  wk00;
+  PBLSTN=PBLST*0.01*WBC;
+run ;
+
 /*** excel output ***/
 %let strow = 6;                         *データ部分開始行;
 %let prerow = %eval(&strow. -1);
@@ -129,7 +135,7 @@ run;
   run;
 
 %mend;
-%xlsout01(&file.,r&strow.c2:r%eval(&prerow.+&obs.)c25,wk00,SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR MEDHIS COMP ALLER INTP RELREF FRDUR HSCT RAD LKPSN CD22 LVEF WBC PBLST BLAST);
+%xlsout01(&file.,r&strow.c2:r%eval(&prerow.+&obs.)c25,wk00,SUBJID SITENM SEX BSA AGE HEIGHT WEIGHT BMI PRIMDIAG DISDUR MEDHIS COMP ALLER INTP RELREF FRDUR HSCT RAD LKPSN CD22 LVEF WBC PBLSTN BLAST);
 
 /*footer*/
 /*data footer;*/
