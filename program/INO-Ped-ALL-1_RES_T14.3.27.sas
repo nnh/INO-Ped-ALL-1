@@ -84,7 +84,7 @@ run ;
 
 data  worst_1;
   set  base;
-  if  trtpn in(2,3);
+  if  trtpn in(3,4);
   proc sort ; by USUBJID PARAMCD decending AVAL;
   proc sort nodupkey ; by USUBJID PARAMCD;
 run ;
@@ -130,7 +130,7 @@ run ;
 
 data  worst_1;
   set  base2;
-  if  trtpn in(2,3);
+  if  trtpn in(3,4);
   proc sort ; by USUBJID PARAMCD decending CHG;
   proc sort nodupkey ; by USUBJID PARAMCD;
 run ;

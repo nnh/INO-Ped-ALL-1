@@ -2,7 +2,7 @@
 Program Name : QC_INO-Ped-ALL-1_RES_T14.3.27.sas
 Study Name : INO-Ped-ALL-1
 Author : Ohtsuka Mariko
-Date : 2021-4-19
+Date : 2023-2-7
 SAS version : 9.4
 **************************************************************************;
 proc datasets library=work kill nolist; quit;
@@ -155,7 +155,7 @@ proc sql noprint;
     create table temp_worst_1 as
     select SUBJID, PARAMCD, max(AVAL) as AVAL
     from &input_ds. 
-    where AVISITN = 101
+    where AVISITN = 101 or AVISITN = 108
     group by SUBJID, PARAMCD;
 
     create table worst_1 as
@@ -200,4 +200,4 @@ run;
 %OPEN_EXCEL(&template.);
 %SET_EXCEL_T14_3_27();
 %OUTPUT_EXCEL(&output.);
-%SDTM_FIN(&output_file_name.);
+*%SDTM_FIN(&output_file_name.);
